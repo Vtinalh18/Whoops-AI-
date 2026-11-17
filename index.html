@@ -1,0 +1,1429 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#FAFAFA">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Whoops AI!">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Whoops AI!</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#141414; --ink2:#27272A; --ink3:#3F3F46; --muted:#6B6B73; --muted2:#71717A;
+  --line:#ECECEE; --line2:#E4E4E7; --bg:#F4F4F5; --bg2:#FAFAFA; --white:#FFFFFF;
+  --lav:#D8C7FD; --lav-ink:#2E1A5C; --lav-tint:#EDE4FE; --purple:#4B2A8A;
+  --mint:#56C89F; --mint-ink:#0B3B2C; --mint-tint:#E3F1EC; --mint-dark:#0B5A40;
+  --sage:#B2D3C8; --sage-tint:#EAF4F0;
+  --red:#8E2A20; --red-tint:#FBEAE8; --amber-tint:#FFF6E5; --amber-ink:#5C3700;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink);background:var(--bg);font-size:14px;line-height:1.45}
+a{color:var(--purple)}
+button,input,select,textarea{font:inherit;color:inherit}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.app{display:flex;min-height:100vh}
+
+/* sidebar */
+.side{flex:0 0 248px;background:#FAFAFA;border-right:1px solid var(--line);padding:20px 14px;display:flex;flex-direction:column;gap:20px;position:sticky;top:0;height:100vh;overflow-y:auto}
+.brand{display:flex;align-items:center;gap:10px;padding:0 8px}
+.logo{width:32px;height:32px;border-radius:999px;background:var(--lav);color:var(--purple);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px}
+.brand b{font-weight:600;font-size:18px}
+.navgroup{display:flex;flex-direction:column;gap:2px}
+.navlabel{padding:0 10px 6px;font-size:12px;font-weight:600;color:var(--muted2);letter-spacing:.04em;text-transform:uppercase;display:flex;justify-content:space-between;align-items:center}
+.navitem{display:flex;align-items:center;gap:10px;min-height:40px;padding:0 10px;border-radius:999px;color:var(--ink3);text-decoration:none;font-size:14px;border:0;background:transparent;cursor:pointer;width:100%;text-align:left}
+.navitem:hover{background:#F0F0F2}
+.navitem.active{background:var(--lav-tint);color:var(--purple);font-weight:600}
+.navitem svg{flex:0 0 18px}
+.navsoon{display:flex;justify-content:space-between;align-items:center;min-height:34px;padding:0 10px;color:var(--muted2);font-size:14px}
+.badge{font-size:11px;padding:2px 8px;border-radius:99px;background:var(--bg);color:var(--muted)}
+.client{display:flex;align-items:center;gap:8px;min-height:36px;padding:0 10px;border-radius:8px;font-size:14px;color:var(--ink3);cursor:pointer;border:0;background:transparent;width:100%;text-align:left}
+.client:hover{background:#F0F0F2}
+.client.sel{color:var(--ink);font-weight:600}
+.camp{display:block;min-height:32px;padding:6px 10px 6px 34px;border-radius:8px;font-size:13px;color:var(--muted);cursor:pointer;border:0;background:transparent;width:100%;text-align:left}
+.camp:hover{background:#F0F0F2}
+.camp.sel{background:var(--bg);color:var(--ink);font-weight:500}
+.linkbtn{border:0;background:transparent;color:var(--purple);font-size:13px;font-weight:500;cursor:pointer;padding:6px 10px;text-align:left}
+.usage{margin-top:auto;padding:14px;border-radius:14px;background:#fff;border:1px solid var(--line);display:flex;flex-direction:column;gap:8px;font-size:12px}
+.bar{height:6px;border-radius:99px;background:var(--line2);overflow:hidden}
+.bar>span{display:block;height:100%;background:var(--mint);border-radius:99px}
+
+/* main */
+.main{flex:1;min-width:0;padding:24px 32px 48px;background-color:var(--bg);background-image:radial-gradient(#D9D9DE 1px,transparent 1px);background-size:18px 18px;display:flex;flex-direction:column;gap:20px}
+.top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px}
+.crumb{font-size:13px;color:var(--muted)}
+.crumb strong{color:var(--ink);font-weight:600}
+h1{margin:4px 0 0;font-weight:600;font-size:22px;letter-spacing:-.01em}
+h2{margin:0;font-size:16px;font-weight:600}
+h3{margin:0;font-size:14px;font-weight:600}
+.row{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
+.grid4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+@media (max-width:1100px){.grid3{grid-template-columns:repeat(2,minmax(0,1fr))}.grid4{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:820px){.grid2{grid-template-columns:1fr}.grid4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:640px){.grid3{grid-template-columns:1fr}}
+.card{background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 1px 2px rgba(16,16,20,.04);padding:20px;display:flex;flex-direction:column;gap:16px;min-width:0}
+.card.tight{padding:14px;gap:12px}
+.muted{color:var(--muted)}
+.small{font-size:12px}
+.field{display:flex;flex-direction:column;gap:6px}
+.field>span,.lbl{font-size:13px;font-weight:600}
+.input,select.input,textarea.input{height:44px;border:1px solid var(--line2);border-radius:10px;padding:0 12px;background:#fff;font-size:14px;width:100%}
+textarea.input{height:auto;padding:10px 12px;resize:vertical;line-height:1.5}
+.input:focus{outline:2px solid var(--lav);outline-offset:1px}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 18px;border-radius:999px;border:1px solid var(--line2);background:#fff;color:var(--ink);font-size:14px;cursor:pointer;text-decoration:none;white-space:nowrap}
+.btn:hover{background:#F7F7F8}
+.btn.primary{background:var(--lav);border-color:var(--lav);color:var(--lav-ink);font-weight:600}
+.btn.primary:hover{background:#CDB8FC}
+.btn.sm{min-height:36px;padding:0 12px;font-size:13px}
+.btn.ghost{border-color:transparent;background:transparent;color:var(--purple)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.block{width:100%}
+.iconbtn{width:40px;height:40px;border-radius:999px;border:1px solid var(--line2);background:#fff;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink3)}
+.seg{display:flex;gap:6px}
+.seg button{flex:1;height:44px;border:1px solid var(--line2);border-radius:10px;background:#fff;cursor:pointer;font-size:13px}
+.seg button[aria-pressed="true"]{border-color:var(--purple);background:var(--lav-tint);color:var(--purple);font-weight:600}
+.tabs{align-self:flex-start;display:inline-flex;flex-wrap:wrap;gap:4px;padding:4px;border-radius:12px;background:#EEEEF0}
+.tabs button{min-height:36px;padding:0 14px;border:0;border-radius:9px;background:transparent;cursor:pointer;font-size:13px;color:var(--ink3);display:inline-flex;align-items:center;gap:6px}
+.tabs button[aria-selected="true"]{background:#fff;font-weight:600;color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.switch{width:44px;height:26px;border:0;border-radius:99px;background:#D4D4D8;position:relative;cursor:pointer;flex:0 0 44px}
+.switch::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:99px;background:#fff;transition:left .15s}
+.switch[aria-checked="true"]{background:var(--mint)}
+.switch[aria-checked="true"]::after{left:21px}
+
+/* chips & tags */
+.chip{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:99px;background:#fff;border:1px solid var(--line2);font-size:13px}
+.chip button{border:0;background:transparent;cursor:pointer;color:var(--muted);padding:0;width:18px;height:18px;line-height:1}
+.chip.add{border-style:dashed;color:var(--purple);cursor:pointer}
+.tag{display:inline-block;font-size:11px;padding:3px 8px;border-radius:6px;background:var(--bg);color:var(--ink3)}
+.tag.lav{background:var(--lav-tint);color:var(--purple)}
+.tag.mint{background:var(--mint-tint);color:var(--mint-dark)}
+.status{font-size:12px;font-weight:600;padding:4px 10px;border-radius:99px;background:var(--bg);color:var(--ink3)}
+.status.ok{background:var(--mint-tint);color:var(--mint-dark)}
+.status.warn{background:#FDF1DC;color:#7A4B00}
+.status.bad{background:var(--red-tint);color:var(--red)}
+.ai{display:inline-flex;align-items:center;gap:6px;align-self:flex-start;padding:4px 10px 4px 5px;border-radius:8px;font-size:13px;font-weight:600}
+.ai .lg{width:22px;height:22px;border-radius:6px;background:#fff;border:1px solid rgba(0,0,0,.08);display:inline-flex;align-items:center;justify-content:center}
+.ai .lg img{width:13px;height:13px;object-fit:contain}
+
+/* prompt box */
+.prompt{position:relative;border:1px solid var(--line2);border-radius:12px;padding:16px;background:var(--bg2);font-family:"SFMono-Regular",Consolas,Menlo,monospace;font-size:13px;line-height:1.65;color:var(--ink2);white-space:pre-wrap;min-height:110px}
+.prompt[contenteditable="true"]:focus{outline:2px solid var(--lav)}
+.suggest{border-radius:12px;padding:16px;background:var(--sage-tint);border:1px solid var(--sage);display:flex;flex-direction:column;gap:12px}
+
+/* drop zones / thumbs */
+.drop{border:1.5px dashed #D4D4D8;border-radius:12px;background:var(--bg2);color:var(--muted);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;text-align:center;padding:16px;font-size:13px;min-height:120px}
+.drop.hot{border-color:var(--lav);background:#FAF7FD;color:var(--purple)}
+.drop.over{background:var(--lav-tint)}
+.thumb{width:120px;height:120px;border-radius:12px;object-fit:cover;background:var(--lav-tint);flex:0 0 120px}
+.img4x5{width:100%;aspect-ratio:4/5;border-radius:12px;object-fit:cover;background:var(--bg);display:block}
+.imgbox{width:100%;border-radius:12px;background:var(--bg);display:flex;align-items:center;justify-content:center;overflow:hidden}
+.imgbox img{width:100%;height:100%;object-fit:contain;display:block}
+
+/* tables / lists */
+.mrow{display:grid;grid-template-columns:44px 32px 240px minmax(0,1fr) 150px 44px;gap:12px;align-items:center;padding:10px 16px;border-bottom:1px solid var(--bg)}
+.mrow.head{font-size:12px;font-weight:600;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;background:var(--bg2);border-bottom:1px solid var(--line)}
+.mrow.sel{background:#FCFAFF}
+.clamp{overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+
+/* library */
+.tile{background:#fff;border:1px solid var(--line);border-radius:14px;padding:8px;display:flex;flex-direction:column;gap:8px;position:relative}
+.tile .imgwrap{position:relative;border-radius:10px;overflow:hidden}
+.tile .chk{position:absolute;top:8px;left:8px;width:28px;height:28px;border-radius:8px;background:rgba(255,255,255,.92);display:flex;align-items:center;justify-content:center}
+.tile .mark{position:absolute;top:8px;right:8px;width:28px;height:28px;border-radius:99px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700}
+.mark.ok{background:#1B7A5A;color:#fff}
+.mark.bad{background:#fff;color:var(--red);border:1px solid #E7C3BE}
+.tile .actions{display:flex;gap:6px;padding:0 4px 4px;flex-wrap:wrap}
+
+/* modal & toast */
+.overlay{position:fixed;inset:0;background:rgba(24,24,27,.32);display:flex;align-items:flex-start;justify-content:center;padding:72px 24px;z-index:50;overflow:auto}
+.modal{width:100%;max-width:560px;background:#fff;border-radius:18px;box-shadow:0 24px 60px rgba(16,16,20,.18);display:flex;flex-direction:column}
+.modal header{display:flex;align-items:center;justify-content:space-between;padding:18px 24px;border-bottom:1px solid var(--line)}
+.modal .body{padding:20px 24px;display:flex;flex-direction:column;gap:14px}
+.modal footer{display:flex;justify-content:flex-end;gap:8px;padding:14px 24px;border-top:1px solid var(--line);background:var(--bg2);border-radius:0 0 18px 18px}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#18181B;color:#fff;padding:10px 16px;border-radius:999px;font-size:13px;z-index:60;box-shadow:0 8px 24px rgba(0,0,0,.2);max-width:90vw}
+.alert{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:14px 18px;border-radius:14px;background:var(--amber-tint);border:1px solid #F3D9A4;color:var(--amber-ink);font-size:13px}
+.alert.err{background:var(--red-tint);border-color:#E7C3BE;color:var(--red)}
+.alert.info{background:var(--sage-tint);border-color:var(--sage);color:#1F3B33}
+.spin{width:16px;height:16px;border-radius:99px;border:2px solid currentColor;border-right-color:transparent;animation:sp 0.8s linear infinite;display:inline-block}
+@keyframes sp{to{transform:rotate(360deg)}}
+.empty{display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center;padding:48px 24px;color:var(--muted)}
+kbd{font-family:inherit;font-size:12px;padding:2px 8px;border-radius:6px;border:1px solid var(--line2);background:#fff}
+
+/* ---- tablet ---- */
+.menubtn{display:none}
+.scrim{display:none}
+@media (max-width:1100px){
+  .side{position:fixed;left:0;top:0;z-index:40;transform:translateX(-105%);transition:transform .2s ease;box-shadow:0 10px 40px rgba(16,16,20,.18);height:100%}
+  .app.nav-open .side{transform:none}
+  .app.nav-open .scrim{display:block;position:fixed;inset:0;background:rgba(24,24,27,.28);z-index:39}
+  .menubtn{display:inline-flex}
+  .main{padding:16px 20px 40px}
+}
+@media (max-width:900px){
+  .mrow{display:flex;flex-wrap:wrap;gap:8px 12px}
+  .mrow.head{display:none}
+  .mrow>:nth-child(2){display:none}
+  .mrow>:nth-child(3){flex:1;min-width:0}
+  .mrow>:nth-child(4){order:5;flex-basis:100%;padding-left:56px}
+}
+@media (hover:none){
+  .navitem,.client,.camp{min-height:44px}
+  .btn.sm{min-height:40px}
+}
+
+</style>
+</head>
+<body>
+<div class="app">
+  <nav class="side" id="side" aria-label="Navegación principal"></nav>
+  <div class="scrim" data-act="nav-close"></div>
+  <main class="main" id="main"></main>
+</div>
+<input type="file" id="anyfile" accept="image/*" hidden>
+<script>
+'use strict';
+/* ============ Utilidades ============ */
+const $ = (sel, root = document) => root.querySelector(sel);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+const today = () => new Date().toISOString().slice(0, 10);
+
+function toast(msg, ms = 2600) {
+  document.querySelectorAll('.toast').forEach((x) => x.remove());
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.setAttribute('role', 'status');
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), ms);
+}
+
+/* ============ Modelos e IAs ============ */
+const MODELS = ['Gemini', 'ChatGPT', 'Higgsfield', 'Pomelli', 'Firefly'];
+const BRAND = {
+  Gemini: { fg: '#1A56C9', bg: '#E8F0FE', logo: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjMwMCIgdmlld0JveD0iMCAwIDMwMCAzMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxwYXRoIGQ9Ik0xNTAuNDA1IDBDMTUyLjQzMyA0MC40MzA3IDE3Mi4wMzEgODAuODU2MSAyMDEuOTk2IDEwNy45NzdDMjIzLjk3MSAxMjguMTAzIDI1MS4xNDQgMTQxLjY3MiAyODAuNDM2IDE0Ny4xNDZDMjg1LjUyNyAxNDguMTE5IDI5NS4wMDIgMTQ5LjU4MSAzMDAgMTQ5LjU1NVYxNTAuNDQxQzI5NC4zNzIgMTUwLjU5NyAyODYuNzk5IDE1MS42ODMgMjgxLjE3NyAxNTIuNzE0QzI1Mi4yMTMgMTU3Ljk4MyAyMjUuMjgyIDE3MS4xODcgMjAzLjM3OSAxOTAuODU1QzE3Ny44NDkgMjEzLjgxOSAxNjAuMjUxIDI0My45MTggMTUzLjQxMiAyNzcuNjQ3QzE1Mi4zMjMgMjgzLjEwNyAxNTEuNDg5IDI4OC42MTUgMTUwLjkxIDI5NC4xNTNDMTUwLjY5MSAyOTYuMDk2IDE1MC41ODggMjk4LjA5NyAxNTAuMzUgMzAwSDE0OS41NTJDMTQ5LjYwNiAyOTUuOTExIDE0OC42NSAyODkuNjM3IDE0OC4wMzkgMjg1LjU3NkMxNDIuOTIyIDI1Mi4wNDIgMTI3LjI1IDIyMS4wMTMgMTAzLjI5OCAxOTYuOTkyQzk4LjcwOTUgMTkyLjQ0NCA5My44NzcyIDE4OC4xNDggODguODIzMiAxODQuMTI1Qzg3LjExMzcgMTgyLjgwMyA4NS4zNzc3IDE4MS41MTggODMuNjE3MiAxODAuMjY2QzgyLjgwNTEgMTc5LjY4MSA4MS40OTcyIDE3OC44NDIgODAuODA5NiAxNzguMTczQzc5LjUyMzggMTc3LjQ5OSA3Ni41MTkxIDE3NS4zODcgNzUuMTI0IDE3NC41MDdDNzEuNzEzOSAxNzIuMzUzIDY4LjIyMjEgMTcwLjMzMSA2NC42NTYyIDE2OC40NDVDNDUuOTMyOCAxNTguNDQyIDIxLjIzMiAxNTEuMTMxIDAgMTUwLjQzMVYxNDkuNTU0QzUuNDgxMDYgMTQ5LjUyNiAxMy40NjkyIDE0OC4zMTIgMTguOTMyNiAxNDcuMzIzQzQ4Ljk4MjQgMTQxLjg0NyA3Ni44MTgzIDEyNy44MjkgOTkuMTExMyAxMDYuOTQ4SDk5LjExMjNDOTkuODM3MyAxMDYuMDY1IDEwMi40OTggMTAzLjgxOSAxMDMuNTc3IDEwMi43MUMxMDcuNzUxIDk4LjQwNTEgMTExLjcyMiA5My45MDc1IDExNS40NzggODkuMjMzNEMxMzUuNzI1IDYzLjY5MTcgMTQ3LjYyIDMyLjUzNjggMTQ5LjU0NyAwSDE1MC40MDVaIiBmaWxsPSJibGFjayIvPgo8L3N2Zz4K' },
+  ChatGPT: { fg: '#0B7A5E', bg: '#E3F4EF', logo: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjMwNCIgdmlld0JveD0iMCAwIDMwMCAzMDQiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxwYXRoIGQ9Ik0xMjkuMjMgMC4wODYwMDk5QzEzMC45OTkgMC4wMzQ4NjQ5IDEzMi43NjggMC4wMDYyMTQ0MiAxMzQuNTM4IDBDMTU3Ljc3OCAwLjAzMzI2MDMgMTc1LjE0NSA5LjExNjgyIDE5MS4xNzUgMjUuMTY3NUMxOTQuNDIzIDI1LjAwMjQgMTk4LjIwMyAyNC4yMDk0IDIwMS41MjUgMjMuOTI1OEMyMTAuNjgxIDIzLjIzNjEgMjE5Ljg5IDI0LjIxNDYgMjI4LjY5NiAyNi44MTM2QzI0OC41MDMgMzIuNTUxOSAyNjUuMTU1IDQ2LjAzOCAyNzQuODc4IDY0LjIxNjJDMjg1LjMwMSA4My4zOTAyIDI4Ni41MTUgMTAzLjU1OCAyODAuNCAxMjQuMjU3QzI4MS42NzkgMTI2LjI0NSAyODQuNTUxIDEyOS40NzUgMjg2LjEzIDEzMS43MDZDMjkxLjQ4IDEzOS4yOTcgMjk1LjM5NCAxNDcuODAxIDI5Ny42ODUgMTU2Ljc5OUMzMDIuNjY4IDE3Ni43MjkgMjk5LjUzNiAxOTcuODIyIDI4OC45NyAyMTUuNDQzQzI3Ny41OTggMjM0LjYxNSAyNjAuNTg3IDI0NS41NDkgMjM5LjM3NiAyNTAuOTVDMjM4LjAyMiAyNTMuMTE5IDIzNi43MTcgMjU3LjE5MyAyMzUuNTU1IDI1OS42NjhDMjIzLjI2MSAyODUuODc4IDE5OS41ODQgMzAxLjE5IDE3MS4xNiAzMDMuOUMxNjguMTA3IDMwNC4wMDUgMTY0LjU0OSAzMDQuMDU4IDE2MS41MTcgMzAzLjkwM0MxNDEuMzE4IDMwMi43NzcgMTIyLjM4NiAyOTMuNzA5IDEwOC44NTQgMjc4LjY3OEM5NS44ODk0IDI4MC43OTMgODcuNDc3IDI4MS4yMTYgNzQuNDg4IDI3OC4wMUM1NC42NzI3IDI3My4xNjYgMzcuNjEzNCAyNjAuNjEzIDI3LjA5OTUgMjQzLjEzOUMxOC4wMzE2IDIyOC4wNjcgMTQuMzQ4MSAyMTEuNjQxIDE2LjUwMjUgMTk0LjA3QzE3LjEzMTUgMTg4LjkzOSAxOC4zMzU1IDE4NC40ODcgMTkuNTczNiAxNzkuNDgxQzEwLjM5ODYgMTY4LjMwNSA0LjQ3MDIyIDE1OC4wNzYgMS41MzM4OSAxNDMuNjE3Qy0yLjUzNjk5IDEyMy40OTQgMS41NzEyNCAxMDIuNTc4IDEyLjk1MTEgODUuNDg3MUMyMy44Njc1IDY4Ljc2MzkgNDEuMDQ3NyA1Ny4xMjYgNjAuNjMxOCA1My4xODc4QzYxLjc2MDggNTEuMTczNSA2My4xNjQ1IDQ3LjE3MyA2NC4yMTAzIDQ0Ljg0ODNDNjcuMDQ2OCAzOC41MDY2IDcwLjc1MjggMzIuNTkxMyA3NS4yMjE4IDI3LjI3MTdDODkuMjI0NSAxMC41MDU2IDEwNy43MjUgMi4wMDM5MyAxMjkuMjMgMC4wODYwMDk5Wk03Ny4xMzM5IDE0Ny43MzFDODUuMjkwNiAxNTIuNjIyIDk0LjkwNTQgMTU4LjIyMSAxMDMuMjE4IDE2Mi43NDVMMTAzLjIzNiAxNDkuMTkzTDEwMy4yMjIgMTAwLjYyN0wxMDMuMjE5IDg1Ljc1NDNDMTAzLjIxOSA4Mi4yMDE5IDEwMi43NTIgNzMuNjA2NCAxMDUuMjcgNzEuNDI2N0MxMDkuODIgNjcuNDg3NyAxMTcuMjM5IDYzLjcxMjEgMTIyLjQ1NyA2MC43MTJMMTQ3LjQ4MyA0Ni4yNTA3TDE2Mi4yOTkgMzcuNzA1OEMxNjQuNDI3IDM2LjQ4MTMgMTY4LjMzOCAzNC4wOTE4IDE3MC40MSAzMy4yMDE2QzE1OC45ODkgMjMuNTIzNSAxNDUuMzc5IDE5LjU5NzMgMTMwLjU2MSAyMC4yMDczQzExMy4yNDEgMjIuMjkxMSAxMDAuMzA2IDI3LjcyMTMgODkuMTgzNyA0MS45NDc5QzgzLjg5NzcgNDguNzMyNCA4MC4yMzQzIDU2LjYzNTggNzguNDc0IDY1LjA1MzNDNzYuODMyNyA3Mi43ODgxIDc2Ljk2MjMgODEuNjY5MSA3Ny4wNzg1IDg5LjYxMjhDNzcuMzYxIDEwOC45MjQgNzYuNjk2MSAxMjguNDUgNzcuMTMzOSAxNDcuNzMxWk0yNjMuMjg3IDExMC4xMjdDMjY1LjU3NiA5NC4yNzE5IDI2Mi4xNjYgNzkuMjYwNCAyNTIuNTAyIDY2LjM5MjVDMjQzLjU3NiA1NC41NDA0IDIzMC4zMzQgNDYuNjg4NyAyMTUuNjQ5IDQ0LjU0MzRDMjEyLjUyOSA0NC4xMDQ5IDIwOC40MDIgNDMuOTExNCAyMDUuMjY0IDQ0LjE0NTdDMTg5LjM4OCA0NC41NTYyIDE4MS43ODUgNDkuNjAzNiAxNjguNjM5IDU3LjIxMzVMMTQ1LjM0NiA3MC42NjQ0TDEyNi4wNjkgODEuNzMzQzEyNC4xNCA4Mi44NTExIDExOC42NDggODUuOTAyNSAxMTcuMTY5IDg3LjA4MDRDMTE2LjY1NyA5NS4yMDY3IDExNy4wNDMgMTA4LjM3NSAxMTcuMDYyIDExNi43OTZDMTI0LjAxMyAxMTIuOTA3IDEzMS4xMDYgMTA4LjgyOSAxMzcuOTUyIDEwNC43NDZDMTUxLjE3OCA5Ni44NTg2IDE2NS4wNDMgODkuNTUxIDE3OC4xNDIgODEuNTE1MUMxODIuNzM5IDc4Ljg3ODIgMTkzLjQwMiA3MS41NjM2IDE5Ny44MDMgNzMuMTQwOEMyMDMuNjgyIDc1LjI0NTIgMjEyLjQ3MyA4MC44MzI3IDIxOC4xMDEgODQuMDkzOUwyNDcuNjM0IDEwMS4xNDRDMjUyLjYxIDEwNC4wMTMgMjU4LjI2MSAxMDcuNDQgMjYzLjI4NyAxMTAuMTI3Wk0xMTcuMDQ4IDE3MC44MDlMMTM5LjY2NSAxODMuODhDMTQxLjYzNyAxODUuMDE5IDE0OC41NDUgMTg5LjE4NiAxNTAuMzA2IDE4OS43NEMxNjAuNTQ1IDE4My4zOTcgMTcyLjI5OSAxNzYuODYgMTgyLjgyNCAxNzAuODg4QzE4My4yMDkgMTYwLjI4NSAxODIuNzY5IDE0OS40NjQgMTgyLjkyMyAxMzguODQxQzE4Mi45NSAxMzcuMDE3IDE4Mi45NjQgMTM0LjkyOCAxODIuODUzIDEzMy4xMTFDMTc5LjY4NiAxMzEuMTQ1IDE1MS4yNTQgMTE0LjQ4NSAxNDkuODIxIDExNC4zMTFDMTQyLjk4OCAxMTcuODYxIDEzNS43MDQgMTIyLjM2IDEyOC45NjYgMTI2LjIwMUMxMjYuNTA0IDEyNy42MDQgMTE5LjE5MiAxMzEuNjYxIDExNy4xNDkgMTMzLjE3OEMxMTYuNjMyIDE0NC42MjkgMTE3LjA1MSAxNTkuMTM3IDExNy4wNDggMTcwLjgwOVpNMTY0LjE2NyAxMDUuNzU4QzE2OS43NTcgMTA5LjU5NCAxNzguNzk2IDExNC40NzIgMTg0Ljg5OSAxMTcuOTg4TDIyMS4zMDMgMTM4Ljk1OEwyMzIuOTM0IDE0NS42NzRDMjM4Ljc0IDE0OS4wNDQgMjQyLjc5NCAxNTAuNDUgMjQyLjk1OCAxNTguMTQyQzI0My4xMDYgMTY1LjExNCAyNDMuMDE5IDE3Mi4wOTEgMjQzLjAyMiAxNzkuMDY1TDI0My4wMTYgMjI4Ljg3MkMyNDUuMjkzIDIyNy45NDEgMjQ5LjEzNCAyMjYuNDQzIDI1MS4xMDEgMjI1LjE1QzI1OS4yODUgMjIwLjIwNSAyNjUuMzk1IDIxNC43MDMgMjcwLjY1NyAyMDYuODIyQzI4Ni45NjUgMTgyLjQwMyAyODEuMjQ0IDE0OC42NTkgMjU3Ljk0IDEzMC44NzRDMjUyLjU0IDEyNi43NTEgMjQ2LjM1NSAxMjMuNDkgMjQwLjQzMyAxMjAuMDhMMjEzLjYwMyAxMDQuNjYxQzIwOS44NzYgMTAyLjUwNSAxOTIuMjY5IDkxLjkzMjkgMTg5LjY0NSA5MS4yMzQ0QzE4My45NiA5NC4zNzExIDE3OC4zNzYgOTcuNzU1MiAxNzIuNzQyIDEwMC45NzRDMTcwLjUxMiAxMDIuMjQ3IDE2Ni4zNjUgMTA0Ljg1OSAxNjQuMTY3IDEwNS43NThaTTIyMi43NjggMTU2LjIxNUMyMjAuNTgyIDE1NC43NjcgMjE4LjA5NSAxNTMuMjg5IDIxNS43OCAxNTIuMDMzQzIwOS40NTUgMTQ4LjYwMyAyMDMuMjMgMTQ0LjQ3MiAxOTYuODQzIDE0MS4yMDhMMTk2Ljc5MSAxOTkuNzQ5QzE5Ni44MzQgMjA2LjAzIDE5Ni44MzQgMjEyLjMxMSAxOTYuNzkxIDIxOC41OTJDMTk2Ljc2NyAyMjEuNjk5IDE5Ny4yNDYgMjMwLjE3MyAxOTQuOTExIDIzMi4zNDNDMTkxLjY5NCAyMzUuMzMyIDE4Ni41MDIgMjM4LjAwMiAxODIuNjM0IDI0MC4yNTFMMTY0LjY2IDI1MC42MDhDMTUzLjc1MyAyNTYuODk3IDE0MC41NDUgMjY1LjA2NyAxMjkuNTc5IDI3MC44NDdDMTM3LjQwMiAyNzYuNzc1IDE0My42OCAyODAuMzQ5IDE1My40MTEgMjgyLjUxNEMxNjcuODY1IDI4NS43NzkgMTgzLjAyMyAyODMuMjMyIDE5NS42MTEgMjc1LjQyNUMyMDguNjk5IDI2Ny4zOTQgMjE3Ljk5OSAyNTQuNDM2IDIyMS40MTcgMjM5LjQ3MUMyMjMuMDUxIDIzMi4zNDYgMjIyLjkzNyAyMjQuNzEzIDIyMi44MzUgMjE3LjQyQzIyMi41NDkgMTk3LjA2OCAyMjMuMTggMTc2LjU0OCAyMjIuNzY4IDE1Ni4yMTVaTTM2Ljg4MjggMTkzLjgwN0MzNS4xNzQ3IDIwNC45MTkgMzUuOTYzNyAyMTAuMzk2IDM4Ljg1MTkgMjIxLjIyMUM0NC42NDI1IDIzNi40MzMgNTQuMTQwMyAyNDguMTk0IDY5LjI3MDkgMjU0Ljk3QzgzLjA0OTIgMjYxLjI0NyA5OC43NjM4IDI2MS43NjYgMTEyLjkyNyAyNTYuNDEzQzExOS4yMDYgMjU0LjAwMyAxMjQuMDQxIDI1MC45MTIgMTI5LjgwOSAyNDcuNTcxTDE0OS4zMDQgMjM2LjI5OEwxNzEuNjM5IDIyMy40NDRDMTc0LjYwMiAyMjEuNzM2IDE4MC4xOCAyMTguNzI4IDE4Mi44NjggMjE2Ljg3N0MxODIuODk3IDIxNC4zNTMgMTgzLjEzMyAxODguMzc2IDE4Mi43MDEgMTg3LjU4TDE4Mi4yODcgMTg3LjUyN0MxNzUuOTc0IDE5MC44NDkgMTY5LjIxMSAxOTQuOTg2IDE2Mi45ODIgMTk4LjU3N0wxMjcuNzg0IDIxOC44NjJMMTE0Ljk1MSAyMjYuMzE5QzEwMy4wODggMjMzLjE4MiAxMDMuODI3IDIzMi40NzQgOTIuMTYzOCAyMjUuNzQ1TDc4LjI0NjkgMjE3LjcwM0M2NC45ODE0IDIxMC4wMjkgNDkuODQwMyAyMDEuNzY0IDM2Ljg4MjggMTkzLjgwN1pNNTYuNTQzNyA3NS4yNTQzQzQyLjkwNDkgODAuMTAxIDMxLjc2NjcgOTAuNzkgMjUuNTk0NiAxMDMuNzk4QzE5LjEyNDEgMTE3LjQ1OCAxOC4zNTk0IDEzMy4xMyAyMy40Njk3IDE0Ny4zNTRDMjYuNTc0NyAxNTUuOTUyIDMxLjY4NTYgMTYzLjY4NyAzOC4zNzgxIDE2OS45MTdDNDUuMTI0NyAxNzYuMTQ0IDU4LjEyNzIgMTgyLjk1MSA2Ni41MTczIDE4Ny43NzlMMTAzLjU1OCAyMDkuMTdDMTA1Ljc1NyAyMTAuNDQ0IDEwNy45ODMgMjExLjc5NSAxMTAuMzEyIDIxMi44MDJDMTE1LjQyMyAyMDkuNzAzIDEyMC41NzkgMjA2LjY4MSAxMjUuNzgxIDIwMy43MzdDMTI4Ljg1NiAyMDEuOTY1IDEzMi43NzggMTk5LjUzIDEzNS45MzcgMTk4LjEyNUMxMjkuNzEzIDE5NC4wODYgMTIxLjYyNiAxODkuNjg1IDExNS4xMzggMTg1Ljk1NEw3OS44IDE2NS41NDFDNzYuMjI4MiAxNjMuNDYyIDcyLjUxMzEgMTYxLjM1OCA2OC45ODg0IDE1OS4zMzNDNjUuODIwNiAxNTcuNTEyIDU4LjE1NjYgMTUzLjc5NyA1Ny42NzgyIDE0OS44NzVDNTcuMDA2MyAxNDQuMzY2IDU3LjI4NDUgMTM3LjcxNCA1Ny4yOTM4IDEzMi4wOTJMNTcuMzAyOSA5NC4zMDIyQzU3LjMwMTcgODguOTQxMiA1Ny4yODE5IDgzLjU4MzcgNTcuMzcxNSA3OC4yMjM1QzU3LjM4NjkgNzcuMzEyMyA1Ny41Mzg0IDc1Ljg2MTcgNTYuODg5IDc1LjI1OTVMNTYuNTQzNyA3NS4yNTQzWiIgZmlsbD0iYmxhY2siLz4KPC9zdmc+Cg==' },
+  Higgsfield: { fg: '#4A5F00', bg: '#F2FAD9', logo: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjI4MiIgdmlld0JveD0iMCAwIDMwMCAyODIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxwYXRoIGQ9Ik0xMDMuMjg4IDAuMjU3ODEyQzExMy4zMjggLTEuMTExNTQgMTI4LjA1NSAzLjA4OTU3IDEzNS40ODIgMTAuMDQ2OUMxNDIuNzI1IDE2LjgzMSAxNDYuNzU0IDI2LjE5MjEgMTQ3LjE0NiAzNi4wODJDMTQ3LjQzIDQzLjIzNyAxNDcuMDcyIDUwLjI2NDkgMTQ0LjczMyA1Ny4wOTQ3QzEzOC45NTMgNzQuMjA1NSAxMjIuMDY5IDkwLjg0NzcgMTA4LjAwOSAxMDEuNjQ2Qzk4Ljg2NTIgMTA4LjQ1NyA4OS4yNTA5IDExNS4wNTkgODAuNDkwMiAxMjIuMzAyQzcwLjk0OTMgMTMwLjE5IDYxLjg0MjEgMTM4LjQ0NiA2Mi41OTU3IDE1MS44NTlDNjIuODkxNCAxNTcuMTE5IDY0LjY3NzkgMTYxLjgzNyA2OC43OTEgMTY1LjM4NEM3Mi4xMjIyIDE2OC4yNTcgNzcuMDI1NiAxNzAuNDE4IDgxLjU0MiAxNjkuOTk3QzEwMC43NzcgMTY3LjM1NiAxMTYuNTUzIDE0Mi40MDkgMTI3LjY2MSAxMjguMzE1QzEzNS40MTggMTE4LjQ3NCAxNDIuMDY4IDEwOC44NDYgMTQ5Ljk0MSA5OS41NDQ5QzE2NC41MjQgODIuMzc5NyAxODIuOTE4IDYzLjUwMiAyMDYuNjA2IDYxLjM3MTFDMjQ5Ljg2MyA1Ny40ODAyIDI3Mi40MSAxMDEuMDYyIDI3NS4xMzQgMTM4LjIzMUMyODMuMzc4IDEzOC4xNzggMjkxLjYyMiAxMzguMTg1IDI5OS44NjYgMTM4LjI1M0MzMDAuMDcxIDE0OS42NzggMzAwLjAxMSAxNjIuMzI0IDI5OS44NzkgMTczLjc1OEwyNzUuMjk5IDE3My43NzNDMjcyLjQ4MSAyMTUuMjA3IDI1Ny4xNDUgMjY4LjQwNSAyMTEuMTU1IDI3OS43NzRDMTk4LjQgMjgyLjkyNiAxODQuNjQ5IDI4MC42OTkgMTczLjU5NCAyNzMuNTc3QzE2Mi40NDcgMjY2LjQxOSAxNTQuNjM1IDI1NS4wOTQgMTUxLjg5OCAyNDIuMTM0QzE0Ny45NTQgMjIzLjQzNSAxNTcuNDIzIDIwNC4xIDE2Ny40MTMgMTg4LjgzMUMxODAuNzU4IDE2OS4xODEgMTk5LjM0MyAxNTMuMTI5IDIyMS41MTQgMTQ0LjIzN0MyMjkuNDAxIDE0MS4wNzUgMjM2LjM0NiAxMzkuNDUzIDI0NC42NDkgMTM3LjY2MUMyNDQuNjU0IDEzMS45MDMgMjQzLjY5MyAxMjYuMjY5IDI0MS40MDEgMTIwLjk2NEMyMzcuOTU5IDExMi45OTkgMjMxLjgzOCAxMDYuNjUzIDIyMy43MDUgMTAzLjQ3QzIxOC44OTMgMTAxLjU4NiAyMTMuNjkxIDEwMS4wOSAyMDguNTYyIDEwMS40MDlDMTYxLjcxOCAxMDQuMzIyIDEzNS42MDcgMTkxLjEzMSA5MS4zNzcgMjEwLjU0NEM3OS4xMjk1IDIxNS45MjEgNjcuMTE1OCAyMTUuMTk4IDU0Ljg4OTYgMjEwLjQ1NkM0Mi42ODk2IDIwNS43MjUgMzMuNDE0NyAxOTYuNDA5IDI4LjE3NDggMTg0LjQzM0MyNC43ODEzIDE3Ni42NzggMjIuOTA2MSAxNjguNTc0IDIyLjg4MDkgMTYwLjA4NEMyMi44MjcyIDE0MS45NzEgMzAuNzcwMSAxMjkuMDYyIDQyLjQ4NDQgMTE2LjE2M0M0OS4zODQ0IDEwOC41NjUgNTcuMjg4MyAxMDEuNjEgNjUuNDk4IDk1LjQ0NTNDNzkuOTkyMSA4NC41NjA4IDEwNi4yMDkgNjkuMDQ0NSAxMTIuNzM5IDUyLjEyN0MxMTQuMzY5IDQ3LjkwNDMgMTE0LjUxOSA0Mi42OTc3IDExMi42NSAzOC41MjY0QzExMS4zNjcgMzUuNjU5NyAxMDkuMTEgMzIuOTYwNCAxMDYuMDg4IDMxLjg4MThDMTAyLjQ5NiAzMC42MDAyIDk4LjM1MDEgMzEuNTIwMyA5NC45Njc4IDMyLjk5OUM4MS42MDQ1IDM4Ljg0MTggNzUuOTkwMyA0OS4yMDM1IDY1Ljk4NTQgNTguNDc3NUM1OS4xOTU3IDY0Ljc3MSA1MS40MjgzIDcwLjcyMzMgNDIuOTgyNCA3NC42MDI1QzMyLjU5NjEgNzkuMzcyOSAyMC45NDA2IDgxLjIxMjggOS43MTE5MSA3OC41MjczQzYuMzg5NTEgNzcuNzMyOSAzLjIyNDYxIDc2LjQ4MSAwLjAyODMyMDMgNzUuMjkzQzAuMDI1MTEzNCA2NC4xNDE0IC0wLjA2MjY1MDMgNTIuODMzNyAwLjA4NTkzNzUgNDEuNjk2M0M3LjU2MDU0IDQzLjU4MjQgMTMuNjI4MyA0NS4xMDc4IDIxLjUyNDQgNDQuMTg5NUM0Mi4zODg3IDQxLjc2MjcgNTUuMjM4MiAyMC43NDU2IDcxLjk2MzkgMTAuMjEzOUM4MS45MTU5IDMuOTQ3MjYgOTEuNjkyIDEuMjczOTggMTAzLjI4OCAwLjI1NzgxMlpNMjQzLjE5MSAxNzMuNzIyQzI0Mi43MyAxNzMuNDk3IDI0Mi45NjUgMTczLjUyOSAyNDIuNDkgMTczLjU5OEMyMjEuNjUyIDE3OC42NDggMjA0Ljg1OCAxOTEuMTM5IDE5My44MDEgMjA5LjQ0NEMxODguMDUgMjE4Ljk2NSAxODEuNTkxIDIzMi42OTIgMTkxLjU3NSAyNDEuNTk3QzE5NS4zNzQgMjQ0LjM5MyAxOTguNjczIDI0NS44ODUgMjAzLjUzIDI0NS4xOTlDMjEyLjE0MiAyNDMuOTc4IDIyMC41MzkgMjM1LjU3NCAyMjUuNDM4IDIyOC44MDZDMjM1LjIxIDIxNS4zMDIgMjQwLjIwNSAxOTguNTQzIDI0Mi4zMjEgMTgyLjE2NkMyNDIuNTQ0IDE4MC40NDMgMjQzLjM3OSAxNzUuMDM5IDI0My4xOTEgMTczLjcyMloiIGZpbGw9ImJsYWNrIi8+Cjwvc3ZnPgo=' },
+  Pomelli: { fg: '#137333', bg: '#E6F4EA', logo: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgwIiBoZWlnaHQ9IjI3MyIgdmlld0JveD0iMCAwIDI4MCAyNzMiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxwYXRoIGQ9Ik05MC4wODc5IDAuMzY4MTY0QzEwOC43ODkgLTAuMzcwNjkxIDEzMS43NzMgMC4yMjg3NjUgMTUwLjk0NCAwLjIzMzM5OEwxNzQuODUyIDAuMjI0NjA5QzE3OS41MjIgMC4yMjA2ODkgMTg0LjE1OSAwLjMxNzk4NSAxODguOTU5IDAuNDE5OTIyQzIwMC4xNDIgMC42NTgwODQgMjAzLjc3NyAxMi41ODk2IDE5Ni43NTggMjAuMDc5MUMxOTMuMzkyIDIzLjY2OTcgMTg2LjI1MyAyMi45NDQzIDE4MS40ODggMjIuOTMzNkMxODEuMjI3IDI5LjUzNiAxODEuMzU1IDM4LjkyOTMgMTgxLjM5NiA0NS40MjU4QzE4MS45NzYgNTUuMDU3IDE4MC4wNiA2OC43NDQ5IDE4My40MjcgNzcuODc1QzE4Ny40ODMgODguODczIDE5Ny4xODUgMTAxLjQzNCAyMDMuOCAxMTEuMzU3TDI1NS4zMDYgMTg4LjkzOEMyNTkuNTc2IDE5NS41MDkgMjYzLjkyNCAyMDIuMDMxIDI2OC4zNDQgMjA4LjUwM0MyNzUuMzQ0IDIxOC44MzYgMjc5LjE4MyAyMjIuMTg2IDI3OS40NzkgMjM1LjM0MkMyNzkuODMxIDI1MS4yODQgMjY5LjM3IDI2Ni42OTUgMjUzLjg4NCAyNzEuMDMzQzI0Ni40NiAyNzMuMTExIDIzMi45NTggMjcyLjM3NCAyMjQuODc0IDI3Mi4zNzRMMTg5Ljg4MSAyNzIuMzYzTDg5LjIwNTEgMjcyLjM1NUM3MS44NzQxIDI3Mi4zNTkgNTQuNDUwMSAyNzIuNDkxIDM3LjEyMyAyNzIuMjg4QzI2LjUwNiAyNzIuMTYzIDE3LjA1MzIgMjY4LjU4MiA5Ljc0NTEyIDI2MC42NzNDMS4wMDY3NCAyNTEuMDUzIC0yLjEyODg5IDIzNy41OTQgMS40NTcwMyAyMjUuMTAyQzMuMjg3MjQgMjE4Ljc5MyAxNC41NzUgMjAzLjA0MSAxOC45MjQ4IDE5Ni41MTdMNjguOTM0NiAxMjEuNjdMODIuNDYwOSAxMDEuNDExQzg2LjE5OTEgOTUuODY4OCA5My4wMzQgODYuNDc0NSA5NS4yNTg4IDgwLjYzMzhDOTYuNTAzNyA3Ny4zNjM4IDk3LjM0NjkgNzMuOTU0NiA5Ny43NzI1IDcwLjQ4MTRDOTguNDE1NCA2NS4xNzU0IDk4LjEzOTUgNTkuNTUwNCA5OC4yMTU4IDU0LjIwMDJDOTguMzYyMyA0My45MTcxIDk3LjkyNSAzMy4yMjMxIDk4LjMwMTggMjIuOTc4NUM5My40MDUyIDIyLjg5NCA4Ny4zMSAyMy42MTI3IDgzLjIzOTMgMjAuMzc4OUM3OC40NjY0IDE2LjU4NjYgNzguMTcwNCA4Ljk4NzAzIDgxLjkwMDQgNC4zNjgxNkM4NC4zNDgyIDEuMzM3NzUgODYuNDMyOSAwLjgxMTU0IDkwLjA4NzkgMC4zNjgxNjRaTTE1OC42OTEgMjMuMDM5MUMxNDguNDc2IDIyLjUwNjYgMTMzLjA0OCAyMi42ODI2IDEyMi42NCAyMi44ODE4TDEyMS40NzYgMjMuMDA3OEMxMjAuMzU3IDI0LjQ5MDIgMTIwLjg3MiAyNi4wODk4IDEyMC44MzIgMjcuODE3NEMxMjAuNTI0IDQxLjA5OTIgMTIxLjY2MSA1NS44NTU4IDEyMC43MzYgNjkuMDA2OEMxMjAuNDEgNzQuMDMwMyAxMTkuNDkzIDc4Ljk5ODIgMTE4LjAwMiA4My44MDY2QzExNS4xNTMgOTMuMTQwNSAxMTEuMDA0IDk5Ljg0NSAxMDUuNjI2IDEwNy44ODJDOTIuODI1OCAxMjcuMDExIDgwLjAzMzcgMTQ2LjE1MSA2Ny4zMzY5IDE2NS4zNUM2Mi45ODQ3IDE3MS45MyA1Ny40NTM4IDE3OC4zMjQgNTguODU3NCAxODYuODUyQzU5LjY5NTQgMTkyLjA5NyA2My4xNzI5IDE5OC40NzEgNjcuNjc3NyAyMDEuNDRDODQuMjk5NCAyMTIuMzk0IDEwNy41MzkgMTk4Ljg3NSAxMjEuMzMxIDE5MC4zMjNDMTQzLjg1OCAxNzUuNTcxIDE2NyAxNTguNjQzIDE5My4wMjEgMTUxLjM4MkMxOTUuMjA2IDE1MC43NzIgMTk5LjAzMyAxNTAuMTE4IDE5OS44NyAxNDcuODcxQzE5OS4xMzcgMTQ0LjM5MSAxOTAuOTExIDEzMi44NTUgMTg4LjQxIDEyOS4xMTRMMTc0LjQ4NyAxMDguMjgyQzE3MS43MyAxMDQuMTU1IDE2OC41MiA5OS42OTA4IDE2Ni4xNjEgOTUuMzg2N0MxNTcuOTEyIDgwLjMzMzIgMTU4LjY2NyA2Ni45NTA3IDE1OC42NzcgNTAuNTE0NkwxNTguNjkxIDIzLjAzOTFaIiBmaWxsPSJibGFjayIvPgo8L3N2Zz4K' },
+  Firefly: { fg: '#C20E00', bg: '#FDECEA', logo: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjM4IiBoZWlnaHQ9IjI3NCIgdmlld0JveD0iMCAwIDIzOCAyNzQiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxwYXRoIGQ9Ik0wLjU1Mzc2MSA0Ny42MDkyQzMuODcyMzIgNDcuMzQwMiA4LjE0OTk1IDQ3LjQ0MjcgMTEuNTI1NyA0Ny40NDE0TDI4LjQ4NDQgNDcuNDM4Nkw4My4xMjgxIDQ3LjQ0MjRMMTIwLjcxNyA0Ny40NDEyQzEyNS41MTUgNDcuNDM5OSAxMzYuODcgNDcuMTYzMyAxNDEuMjI4IDQ3Ljg1NzlDMTQyLjU0NSA0OS45NzgyIDE0My42MzggNjYuODM4MyAxNDQuMTI3IDcwLjQ4NzFDMTQ0LjUwOCA3My4zMjIyIDE0Ni43IDg4LjQ1NzIgMTQ1LjIyNSA5MC4wMjM4QzE0MS43NTQgOTEuMTAxOCAxMTcuNzA0IDkwLjY5OTQgMTExLjgwOCA5MC42OTgzTDQ3LjkzNzkgOTAuNzAxOUM0Ny41ODAxIDEwNy41NjYgNDcuODY4NSAxMjUuODQgNDcuOTIzOSAxNDIuNzlMMTA3LjM2OSAxNDIuNzczTDEyNC40MDkgMTQyLjc3NUMxMjcuODY5IDE0Mi43NzYgMTMyLjUyMiAxNDIuNjA5IDEzNS44MTggMTQzLjE2NEMxMzYuODkgMTQ0LjU5NiAxMzYuNDYzIDE3MS44MDMgMTM2LjQ2MSAxNzUuNTcyQzEzNi40NzEgMTc4Ljg3MiAxMzYuNTA0IDE4MS44NzIgMTM2LjI2IDE4NS4xNjRDMTMzLjMzMyAxODUuNzg1IDEyOC4xODUgMTg1LjU5NiAxMjQuOTg2IDE4NS41OTFMMTA5LjE0NiAxODUuNTYzTDQ3Ljk0NTUgMTg1LjU4NkM0Ny40NTMzIDIxMy4wMzEgNDguMTk1NCAyNDAuNTE3IDQ3LjkyNDEgMjY3Ljk2N0M0Ny45MDc2IDI2OS42MyA0OC4wMjk0IDI3MS4zODIgNDYuNjE5MyAyNzIuNTQ2QzQ1LjcwNTUgMjczLjMwMSA0Ljg3MDI5IDI3My4xMDggMC43MDUwNTIgMjcyLjgyM0MwLjE1MzA1OSAyNzAuOTc3IDAuMDcyMTk0OSAyNjkuMTc1IDAuMDY3ODcyNSAyNjcuMjZDMC4wMjY5MzcxIDI0OS43MDMgMC4wNDE5Mzk3IDIzMi4xMTcgMC4wNDA2Njg0IDIxNC41NjJMMC4wNDIyMDQ3IDExMC40MjhMMC4wNDY3ODI3IDY4LjY1MDNDMC4wNDcyOTEyIDY0LjQwODMgLTAuMjI4NTg4IDUwLjc3NyAwLjU1Mzc2MSA0Ny42MDkyWiIgZmlsbD0iYmxhY2siLz4KPHBhdGggZD0iTTE3NS4xMTIgMTAxLjc5OEMxODAuMDYgMTAxLjcyMiAyMTYuOTk5IDEwMS4yMTkgMjE4LjYzNCAxMDIuMjMzQzIxOC44OTUgMTAyLjM5NiAyMTguODkgMTAyLjgwMSAyMTguOTQ5IDEwMy4wNzlDMjE5Ljk3OSAxMDguMDU2IDIxOS4zOTQgMTE2LjAzOSAyMTkuMzk0IDEyMS4zMzVMMjE5LjM5MSAxNTYuMzcxTDIxOS4zODQgMjMwLjYzNEMyMTkuMzg2IDI0My4wMiAyMTkuNDA5IDI1NS40NjMgMjE5LjM4OSAyNjcuODUyQzIxOS4zODYgMjY5LjIxIDIxOS4xNzUgMjcxLjMwMiAyMTguNDI1IDI3Mi40MzhDMjE3LjYwNCAyNzIuOTk4IDIxNy4wMjQgMjcyLjg3MSAyMTUuOTY2IDI3Mi44NzhMMTg5LjYxMyAyNzIuODk2QzE4NC42MjQgMjcyLjg5OSAxNzcuOTI3IDI3My4wODIgMTczLjA4NiAyNzIuNzE4QzE3Mi40OTkgMjcyLjE3OSAxNzEuOTM3IDI3MS41OTIgMTcxLjM3NyAyNzEuMDI1QzE3MS4xIDI2Ni42OTMgMTcxLjI0IDI2MS4zMDMgMTcxLjI0MyAyNTYuODY0TDE3MS4yNSAyMzMuMzU0VjE1OS43MjZMMTcxLjI2NSAxMjEuMjU1QzE3MS4yNiAxMTguMDE1IDE3MC45NjUgMTA1LjMyOCAxNzEuNTczIDEwMy4xMzJDMTcyLjU5MyAxMDEuOTUxIDE3My41NzkgMTAxLjkyMyAxNzUuMTEyIDEwMS43OThaIiBmaWxsPSJibGFjayIvPgo8cGF0aCBkPSJNMjEzLjQzNiAwLjAzNzU0NzFDMjE1LjM2OSAtMC4xMzEwMTMgMjE3LjMwNiAwLjI3MDQzNCAyMTkuMDEyIDEuMTkyMDVDMjIxLjQ0NSAyLjUyMjIyIDIyMi44OSA1LjIwNjQ3IDIyMy4xMzkgNy45MDk1NEMyMjMuNTI1IDEyLjEwMzIgMjIwLjQ3NCAyMi42MzczIDIxOS40MzQgMjcuMDg3M0MyMTguODYgMjkuNTQwOSAyMTguMDYxIDMyLjA2NDIgMjE4LjM2OSAzNC42MDY2QzIxOS4zIDQyLjI2NTYgMjM1LjI0MSA1MS42NzY3IDIzNy4xOTIgNTkuMzgyOUMyMzcuNzQ2IDYxLjU2ODYgMjM3LjE3NiA2My42OTIzIDIzNi4wMDQgNjUuNTcyNkMyMzQuNzE4IDY3LjY0MTMgMjMyLjMzNSA2OS4yOTU0IDIyOS44ODQgNjkuNTY1NEMyMjguMDM4IDY5Ljc2ODggMjI1Ljk0NiA2OS4yMjMgMjI0LjE0MSA2OC44NTcxQzIxOS40MjQgNjcuOTAyNSAyMDYuNzk4IDY0LjEzMjEgMjAyLjc5OCA2NC42Mzg4QzE5NS4xMzUgNjUuNjA4NyAxODUuOTE4IDgxLjc4NTcgMTc3LjU3NiA4My42NzA4QzE3NS45MzYgODMuNjY0MiAxNzQuNTE1IDgzLjU5MjggMTcyLjk2MSA4Mi45NjQ4QzE2OS45NjkgODEuNzUzOSAxNjguMDg1IDc5LjIwNTcgMTY3Ljc5NyA3NS45Nzg5QzE2Ny40NzIgNzIuMzI5MyAxNzAuOTA0IDYwLjIyMTkgMTcxLjg3IDU1LjkzNDRDMTcyLjM1NCA1My43OTIgMTczLjAxNSA1MS41MDA4IDE3Mi44MzQgNDkuMjg3OUMxNzIuMjc3IDQyLjQ5MjMgMTU2Ljc4OCAzMi41NjgxIDE1My45OTQgMjUuMTY3M0MxNTMuMjg3IDIzLjI5NTMgMTUzLjYyIDIxLjIwNiAxNTQuNDM5IDE5LjQyOThDMTU1LjU4IDE2Ljk1MTUgMTU3LjU4OSAxNS4wODc1IDE2MC4yOTcgMTQuNTI2OUMxNjcuMzY1IDEzLjA2NDcgMTgwLjM1OCAxOS44MjQ3IDE4OC4yMzcgMTkuMTE3MUMxOTUuMTA0IDE4LjUwMDYgMjA1LjI0NCAzLjE5ODI0IDIxMy40MzYgMC4wMzc1NDcxWiIgZmlsbD0iYmxhY2siLz4KPC9zdmc+Cg==' },
+  Edición: { fg: '#4B2A8A', bg: '#EDE4FE', logo: '' },
+  Referencia: { fg: '#3F3F46', bg: '#F4F4F5', logo: '' },
+};
+function aiChip(name, size = 13) {
+  const b = BRAND[name] || BRAND.Referencia;
+  const lg = b.logo ? `<span class="lg"><img src="${b.logo}" alt=""></span>` : '';
+  return `<span class="ai" style="background:${b.bg};color:${b.fg};font-size:${size}px">${lg}${esc(name)}</span>`;
+}
+
+const DEFAULT_SETTINGS = {
+  apiKey: '',
+  textModel: 'gemini-3.5-flash',
+  imagesDirect: false,
+  imageModel: 'gemini-3.1-flash-image',
+  promptLang: 'English',
+  defaultFormat: '4:5',
+  bridges: {
+    Gemini: { on: true, url: 'https://gemini.google.com/app' },
+    ChatGPT: { on: true, url: 'https://chatgpt.com/' },
+    Higgsfield: { on: true, url: 'https://higgsfield.ai/' },
+    Pomelli: { on: true, url: 'https://labs.google.com/pomelli/' },
+    Firefly: { on: true, url: 'https://firefly.adobe.com/' },
+  },
+};
+function loadSettings() {
+  try {
+    const s = JSON.parse(localStorage.getItem('whoops.settings') || '{}');
+    return { ...DEFAULT_SETTINGS, ...s, bridges: { ...DEFAULT_SETTINGS.bridges, ...(s.bridges || {}) } };
+  } catch (e) { return structuredClone(DEFAULT_SETTINGS); }
+}
+function saveSettings() {
+  try { localStorage.setItem('whoops.settings', JSON.stringify(S.settings)); } catch (e) { /* almacenamiento no disponible */ }
+}
+function usage() {
+  try {
+    const u = JSON.parse(localStorage.getItem('whoops.usage') || '{}');
+    return u.day === today() ? u : { day: today(), text: 0, images: 0 };
+  } catch (e) { return { day: today(), text: 0, images: 0 }; }
+}
+function bumpUsage(kind) {
+  const u = usage(); u[kind] = (u[kind] || 0) + 1;
+  try { localStorage.setItem('whoops.usage', JSON.stringify(u)); } catch (e) { /* sin almacenamiento */ }
+}
+
+/* ============ Base de datos local (IndexedDB) ============ */
+const DB = {
+  db: null,
+  open() {
+    return new Promise((res, rej) => {
+      const r = indexedDB.open('whoops-ai', 1);
+      r.onupgradeneeded = () => {
+        const d = r.result;
+        for (const name of ['clients', 'campaigns', 'sessions', 'images', 'recipes']) {
+          if (!d.objectStoreNames.contains(name)) d.createObjectStore(name, { keyPath: 'id' });
+        }
+      };
+      r.onsuccess = () => { DB.db = r.result; res(); };
+      r.onerror = () => rej(r.error);
+    });
+  },
+  tx(store, mode, fn) {
+    return new Promise((res, rej) => {
+      const t = DB.db.transaction(store, mode);
+      const st = t.objectStore(store);
+      const out = fn(st);
+      t.oncomplete = () => res(out && 'result' in out ? out.result : undefined);
+      t.onerror = () => rej(t.error);
+    });
+  },
+  all(store) { return DB.tx(store, 'readonly', (s) => s.getAll()); },
+  get(store, id) { return DB.tx(store, 'readonly', (s) => s.get(id)); },
+  put(store, obj) { return DB.tx(store, 'readwrite', (s) => s.put(obj)); },
+  del(store, id) { return DB.tx(store, 'readwrite', (s) => s.delete(id)); },
+  clear(store) { return DB.tx(store, 'readwrite', (s) => s.clear()); },
+};
+
+/* ============ Estado ============ */
+const S = {
+  settings: loadSettings(),
+  view: 'crear',
+  clients: [], campaigns: [], recipes: [], images: [], sessions: [],
+  ctx: { clientId: null, campaignId: null },
+  draft: null,          // creación en curso
+  activePrompt: 0,      // índice del prompt en comparar
+  pasteTarget: null,    // { promptId, model }
+  editImageId: null,
+  libTab: 'images', libFilter: { campaign: 'ctx', model: 'all', mark: 'all' }, libSel: new Set(),
+  busy: false,
+};
+const urlCache = new Map();
+function imgURL(img) {
+  if (!img) return '';
+  if (!urlCache.has(img.id)) urlCache.set(img.id, URL.createObjectURL(img.blob));
+  return urlCache.get(img.id);
+}
+async function reloadData() {
+  [S.clients, S.campaigns, S.recipes, S.images, S.sessions] = await Promise.all(
+    ['clients', 'campaigns', 'recipes', 'images', 'sessions'].map((s) => DB.all(s)));
+  S.clients.sort((a, b) => a.name.localeCompare(b.name));
+  S.images.sort((a, b) => b.created - a.created);
+  S.sessions.sort((a, b) => b.created - a.created);
+}
+const clientById = (id) => S.clients.find((c) => c.id === id);
+const campaignById = (id) => S.campaigns.find((c) => c.id === id);
+function ctxLabel() {
+  const camp = campaignById(S.ctx.campaignId);
+  const cli = clientById(camp ? camp.clientId : S.ctx.clientId);
+  if (!cli) return 'General';
+  return camp ? `${esc(cli.name)} / <strong>${esc(camp.name)}</strong>` : `<strong>${esc(cli.name)}</strong>`;
+}
+
+/* ============ Gemini API ============ */
+class GeminiError extends Error {
+  constructor(kind, msg) { super(msg); this.kind = kind; }
+}
+async function blobToBase64(blob) {
+  const buf = await blob.arrayBuffer();
+  let bin = '';
+  const bytes = new Uint8Array(buf);
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  return btoa(bin);
+}
+function base64ToBlob(b64, mime) {
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new Blob([bytes], { type: mime || 'image/png' });
+}
+async function geminiCall(model, parts, config = {}) {
+  const key = S.settings.apiKey.trim();
+  if (!key) throw new GeminiError('nokey', 'Falta tu clave de Gemini. Agrégala en Ajustes.');
+  let res;
+  try {
+    res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
+      body: JSON.stringify({ contents: [{ role: 'user', parts }], generationConfig: config }),
+    });
+  } catch (e) {
+    throw new GeminiError('network', 'No se pudo conectar con Gemini. Revisa tu conexión a internet.');
+  }
+  let data = {};
+  try { data = await res.json(); } catch (e) { /* respuesta sin cuerpo */ }
+  if (!res.ok) {
+    const m = (data.error && data.error.message) || '';
+    if (res.status === 429) throw new GeminiError('limit', 'Llegaste al límite de Gemini por ahora. Espera un rato o usa un puente.');
+    if (res.status === 400 && /API key/i.test(m)) throw new GeminiError('key', 'La clave de Gemini no es válida. Revísala en Ajustes.');
+    if (res.status === 403) throw new GeminiError('key', 'Tu clave no tiene acceso a este modelo. Revisa Ajustes.');
+    if (res.status === 404) throw new GeminiError('model', `El modelo «${model}» no está disponible. Elige otro en Ajustes.`);
+    throw new GeminiError('other', 'Gemini respondió con un error: ' + (m || res.status));
+  }
+  if (data.promptFeedback && data.promptFeedback.blockReason) {
+    throw new GeminiError('blocked', 'El modelo rechazó el pedido por sus filtros de seguridad. Ajusta el texto y vuelve a intentar.');
+  }
+  const cand = (data.candidates || [])[0];
+  if (!cand || !cand.content) {
+    throw new GeminiError('blocked', 'Gemini no devolvió resultado (posible filtro de seguridad). Ajusta el texto y vuelve a intentar.');
+  }
+  return cand.content.parts || [];
+}
+async function geminiJSON(parts) {
+  const out = await geminiCall(S.settings.textModel, parts, { responseMimeType: 'application/json', temperature: 0.8 });
+  bumpUsage('text');
+  const txt = out.filter((p) => p.text && !p.thought).map((p) => p.text).join('');
+  try { return JSON.parse(txt); } catch (e) {
+    const m = txt.match(/\{[\s\S]*\}/);
+    if (m) { try { return JSON.parse(m[0]); } catch (e2) { /* sigue abajo */ } }
+    throw new GeminiError('parse', 'Gemini respondió en un formato inesperado. Intenta de nuevo.');
+  }
+}
+async function geminiImage(prompt, aspectRatio, inputBlob) {
+  const parts = [{ text: prompt }];
+  if (inputBlob) parts.unshift({ inlineData: { mimeType: inputBlob.type || 'image/png', data: await blobToBase64(inputBlob) } });
+  const config = { responseModalities: ['TEXT', 'IMAGE'] };
+  if (aspectRatio) config.imageConfig = { aspectRatio };
+  const out = await geminiCall(S.settings.imageModel, parts, config);
+  const img = out.filter((p) => !p.thought).reverse().find((p) => p.inlineData && p.inlineData.data);
+  if (!img) throw new GeminiError('noimage', 'Gemini no devolvió una imagen. Prueba ajustando el prompt.');
+  bumpUsage('images');
+  return base64ToBlob(img.inlineData.data, img.inlineData.mimeType);
+}
+
+/* ============ Iconos ============ */
+const IC = (d, s = 18) => `<svg aria-hidden="true" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+const I = {
+  crear: '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13 7l4 4"/>',
+  comparar: '<rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/>',
+  biblioteca: '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
+  edicion: '<path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/>',
+  ajustes: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1L7 17M17 7l2.1-2.1"/>',
+  folder: '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+  upload: '<path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/>',
+  copy: '<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/>',
+  check: '<path d="M5 12l5 5 9-10"/>',
+  x: '<path d="M6 6l12 12M18 6L6 18"/>',
+  ext: '<path d="M14 4h6v6M20 4l-9 9"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>',
+  dl: '<path d="M12 4v12M7 11l5 5 5-5"/><path d="M4 20h16"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  trash: '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>',
+  left: '<path d="M15 6l-6 6 6 6"/>', right: '<path d="M9 6l6 6-6 6"/>',
+};
+
+/* ============ Navegación ============ */
+const VIEWS = {
+  crear: { label: 'Crear', icon: I.crear },
+  matriz: { label: 'Matriz de variaciones', icon: I.crear, hidden: true },
+  comparar: { label: 'Generar y comparar', icon: I.comparar },
+  biblioteca: { label: 'Biblioteca', icon: I.biblioteca },
+  edicion: { label: 'Edición rápida', icon: I.edicion },
+  ajustes: { label: 'Ajustes', icon: I.ajustes, hidden: true },
+};
+function closeNav() { const a = document.querySelector('.app'); if (a) a.classList.remove('nav-open'); }
+function go(view) {
+  S.view = view; closeNav();
+  render();
+  window.scrollTo(0, 0);
+}
+function renderSide() {
+  const nav = Object.entries(VIEWS).filter(([, v]) => !v.hidden).map(([k, v]) =>
+    `<button class="navitem ${S.view === k || (k === 'crear' && S.view === 'matriz') ? 'active' : ''}" data-go="${k}" ${S.view === k ? 'aria-current="page"' : ''}>${IC(v.icon)}${v.label}</button>`).join('');
+  const general = `<button class="client ${!S.ctx.clientId && !S.ctx.campaignId ? 'sel' : ''}" data-ctx-general>${IC(I.folder, 16)}General</button>`;
+  const clients = S.clients.map((c) => {
+    const camps = S.campaigns.filter((k) => k.clientId === c.id).sort((a, b) => a.created - b.created);
+    const open = S.ctx.clientId === c.id;
+    return `<button class="client ${open && !S.ctx.campaignId ? 'sel' : ''}" data-ctx-client="${c.id}" aria-expanded="${open}">${IC(I.folder, 16)}${esc(c.name)}</button>` +
+      (open ? camps.map((k) => `<button class="camp ${S.ctx.campaignId === k.id ? 'sel' : ''}" data-ctx-camp="${k.id}">${esc(k.name)}</button>`).join('') +
+        `<button class="camp" data-new-camp="${c.id}" style="color:var(--purple)">+ Nueva campaña</button>` : '');
+  }).join('');
+  const u = usage();
+  const usageTxt = S.settings.imagesDirect
+    ? `${u.text} pedidos de texto · ${u.images} imágenes hoy`
+    : `${u.text} pedidos de texto hoy`;
+  $('#side').innerHTML = `
+    <div class="brand"><span class="logo" aria-hidden="true">W!</span><b>Whoops AI!</b></div>
+    <div class="navgroup"><span class="navlabel">General</span>${nav}</div>
+    <div class="navgroup"><span class="navlabel">Próximamente</span>
+      <span class="navsoon">Research<span class="badge">Parte 2</span></span>
+      <span class="navsoon">Conceptos<span class="badge">Parte 2</span></span>
+      <span class="navsoon">Mapa de campaña<span class="badge">Parte 2</span></span>
+      <span class="navsoon">Aprender<span class="badge">Parte 3</span></span>
+    </div>
+    <div class="navgroup"><span class="navlabel">Clientes</span>${general}${clients}
+      <button class="linkbtn" data-new-client>+ Nuevo cliente</button></div>
+    <div class="navgroup"><span class="navlabel">Herramientas</span>
+      <button class="navitem ${S.view === 'ajustes' ? 'active' : ''}" data-go="ajustes">${IC(I.ajustes)}Ajustes</button></div>
+    <div class="usage"><b style="font-weight:600;color:var(--ink3)">Gemini · uso de hoy</b>
+      <span class="muted">${usageTxt}</span>
+      ${S.settings.apiKey ? '<span class="status ok" style="align-self:flex-start">Conectado</span>' : '<button class="btn sm primary" data-go="ajustes">Conectar Gemini</button>'}</div>`;
+}
+function topBar(title, actions = '') {
+  return `<header class="top"><div class="row" style="flex-wrap:nowrap;gap:12px"><button class="iconbtn menubtn" data-act="nav-open" aria-label="Abrir menú"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button><div><div class="crumb">${ctxLabel()}</div><h1>${title}</h1></div></div><div class="row">${actions}</div></header>`;
+}
+
+/* ============ Modales ============ */
+function modal({ title, body, okLabel = 'Guardar', onOk }) {
+  const wrap = document.createElement('div');
+  wrap.className = 'overlay';
+  wrap.innerHTML = `<div class="modal" role="dialog" aria-modal="true" aria-labelledby="mt">
+    <header><h2 id="mt">${title}</h2><button class="iconbtn" data-close aria-label="Cerrar">${IC(I.x, 16)}</button></header>
+    <form class="body">${body}</form>
+    <footer><button class="btn" data-close type="button">Cancelar</button><button class="btn primary" data-ok type="button">${okLabel}</button></footer></div>`;
+  document.body.appendChild(wrap);
+  const close = () => wrap.remove();
+  wrap.addEventListener('click', async (e) => {
+    if (e.target === wrap || e.target.closest('[data-close]')) close();
+    if (e.target.closest('[data-ok]')) {
+      const form = wrap.querySelector('form');
+      const ok = await onOk(Object.fromEntries(new FormData(form)), form);
+      if (ok !== false) close();
+    }
+  });
+  wrap.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
+  const first = wrap.querySelector('input,select,textarea');
+  if (first) first.focus();
+}
+function newClientModal() {
+  modal({
+    title: 'Nuevo cliente', okLabel: 'Crear cliente',
+    body: `<label class="field"><span>Nombre del cliente</span><input class="input" name="name" required></label>
+      <label class="field"><span>Industria</span><select class="input" name="industry"><option>Belleza y skincare</option><option>Moda</option><option>Lifestyle</option><option>Alimentos y bebidas</option><option>Otra</option></select></label>
+      <label class="field"><span>Notas <span class="muted" style="font-weight:400">(opcional)</span></span><textarea class="input" name="notes" rows="2" placeholder="Tono, cosas a evitar, links de referencia…"></textarea></label>
+      <label class="field"><span>Primera campaña <span class="muted" style="font-weight:400">(opcional)</span></span><input class="input" name="campaign" placeholder="Ej: Summer Glow"></label>`,
+    onOk: async (f) => {
+      if (!f.name.trim()) { toast('Ponle un nombre al cliente'); return false; }
+      const c = { id: uid(), name: f.name.trim(), industry: f.industry, notes: f.notes, created: Date.now() };
+      await DB.put('clients', c);
+      S.ctx = { clientId: c.id, campaignId: null };
+      if (f.campaign.trim()) {
+        const k = { id: uid(), clientId: c.id, name: f.campaign.trim(), created: Date.now() };
+        await DB.put('campaigns', k);
+        S.ctx.campaignId = k.id;
+      }
+      await reloadData(); render(); toast('Cliente creado');
+    },
+  });
+}
+function newCampaignModal(clientId) {
+  modal({
+    title: 'Nueva campaña', okLabel: 'Crear campaña',
+    body: `<label class="field"><span>Nombre de la campaña</span><input class="input" name="name"></label>
+      <label class="field"><span>Objetivo</span><select class="input" name="objective"><option>Venta / promo</option><option>Lanzamiento</option><option>Awareness</option><option>Retención</option></select></label>`,
+    onOk: async (f) => {
+      if (!f.name.trim()) { toast('Ponle un nombre a la campaña'); return false; }
+      const k = { id: uid(), clientId, name: f.name.trim(), objective: f.objective, created: Date.now() };
+      await DB.put('campaigns', k);
+      S.ctx = { clientId, campaignId: k.id };
+      await reloadData(); render(); toast('Campaña creada');
+    },
+  });
+}
+
+/* ============ Render principal ============ */
+function render() {
+  renderSide();
+  const main = $('#main');
+  const fn = { crear: viewCrear, matriz: viewMatriz, comparar: viewComparar, biblioteca: viewBiblioteca, edicion: viewEdicion, ajustes: viewAjustes }[S.view];
+  main.innerHTML = fn();
+  if (S.view === 'crear') afterCrear();
+}
+document.addEventListener('click', (e) => {
+  const t = e.target.closest('[data-go],[data-ctx-general],[data-ctx-client],[data-ctx-camp],[data-new-client],[data-new-camp]');
+  if (!t) return;
+  if (t.dataset.go) go(t.dataset.go);
+  else if ('ctxGeneral' in t.dataset) { S.ctx = { clientId: null, campaignId: null }; closeNav(); render(); }
+  else if (t.dataset.ctxClient) { S.ctx = { clientId: t.dataset.ctxClient, campaignId: null }; render(); }
+  else if (t.dataset.ctxCamp) { const k = campaignById(t.dataset.ctxCamp); S.ctx = { clientId: k.clientId, campaignId: k.id }; closeNav(); render(); }
+  else if ('newClient' in t.dataset) newClientModal();
+  else if (t.dataset.newCamp) newCampaignModal(t.dataset.newCamp);
+});
+
+/* ============ Crear ============ */
+const TEMPLATES = ['Ad de producto', 'Story promo', 'Packshot', 'Lifestyle con persona', 'Post para redes'];
+const FORMATS = ['1:1', '4:5', '9:16', '16:9'];
+const DEFAULT_VARS = { 'Ángulo': ['Beneficio', 'Urgencia', 'Social proof'], 'Fondo': ['Playa', 'Estudio'], 'Formato': ['4:5', '9:16'] };
+
+function newDraft() {
+  return {
+    id: uid(), created: Date.now(), clientId: S.ctx.clientId, campaignId: S.ctx.campaignId,
+    refBlob: null, refName: '', idea: '', template: TEMPLATES[0], format: S.settings.defaultFormat,
+    matrixOn: false, vars: structuredClone(DEFAULT_VARS), analysis: [], prompts: [], tab: 'Gemini',
+  };
+}
+function draft() { if (!S.draft) S.draft = newDraft(); return S.draft; }
+function combos(vars) {
+  const keys = Object.keys(vars).filter((k) => vars[k].length);
+  let out = [{}];
+  for (const k of keys) out = out.flatMap((o) => vars[k].map((v) => ({ ...o, [k]: v })));
+  return keys.length ? out : [];
+}
+function enabledModels() { return MODELS.filter((m) => S.settings.bridges[m] && S.settings.bridges[m].on); }
+
+function modelStats(template) {
+  const lines = [];
+  for (const m of MODELS) {
+    const imgs = S.images.filter((i) => i.model === m && i.kind === 'result');
+    const ok = imgs.filter((i) => i.mark === 'ok'), bad = imgs.filter((i) => i.mark === 'bad');
+    const okT = ok.filter((i) => i.template === template).length;
+    const notes = imgs.filter((i) => i.note).slice(0, 3).map((i) => `${i.mark === 'ok' ? '✓' : i.mark === 'bad' ? '✗' : '·'} ${i.note}`);
+    if (ok.length || bad.length || notes.length) lines.push(`${m}: ${ok.length} funcionó, ${bad.length} no funcionó, ${okT} funcionó con «${template}». Notas: ${notes.join(' | ') || 'sin notas'}`);
+  }
+  return lines.length ? lines.join('\n') : 'Todavía no hay historial de resultados.';
+}
+
+function viewCrear() {
+  const d = draft();
+  const recipes = S.recipes.filter((r) => !d.clientId || !r.clientId || r.clientId === d.clientId);
+  const tplOpts = TEMPLATES.map((t) => `<option ${d.template === t ? 'selected' : ''}>${esc(t)}</option>`).join('') +
+    (recipes.length ? `<optgroup label="Recetas ganadoras">${recipes.map((r) => `<option value="receta:${r.id}" ${d.template === 'receta:' + r.id ? 'selected' : ''}>✓ ${esc(r.name)}</option>`).join('')}</optgroup>` : '');
+  const fmtBtns = FORMATS.map((f) => `<button type="button" aria-pressed="${d.format === f}" data-act="fmt" data-v="${f}">${f}</button>`).join('');
+  const nCombos = combos(d.vars).length;
+  const matrix = `<div style="border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:14px;background:var(--bg2)">
+      <div class="row" style="justify-content:space-between;flex-wrap:nowrap">
+        <div><div class="lbl">Matriz de variaciones</div><div class="small muted">Combina variables y arma todos los prompts de una vez</div></div>
+        <button type="button" class="switch" role="switch" aria-checked="${d.matrixOn}" aria-label="Activar matriz de variaciones" data-act="matrix"></button>
+      </div>
+      ${d.matrixOn ? `<div style="display:grid;grid-template-columns:80px minmax(0,1fr);gap:10px 12px;align-items:center">
+        ${Object.entries(d.vars).map(([k, vals]) => `<span class="small muted">${esc(k)}</span><div class="row" style="gap:6px">
+          ${vals.map((v, i) => `<span class="chip">${esc(v)}<button type="button" aria-label="Quitar ${esc(v)}" data-act="var-del" data-k="${esc(k)}" data-i="${i}">×</button></span>`).join('')}
+          <button type="button" class="chip add" data-act="var-add" data-k="${esc(k)}">+ Agregar</button></div>`).join('')}
+      </div>
+      <span class="small">${Object.values(d.vars).map((v) => v.length).filter(Boolean).join(' × ')} = <strong>${nCombos} prompts</strong>${nCombos > 24 ? ' <span style="color:var(--red)">(máximo 24, quita algunas variables)</span>' : ''}</span>` : ''}
+    </div>`;
+  const ref = d.refBlob
+    ? `<div style="position:relative"><img class="thumb" src="${d.refURL}" alt="Referencia cargada"><button type="button" class="iconbtn" style="position:absolute;top:-10px;right:-10px;width:30px;height:30px" aria-label="Quitar referencia" data-act="ref-del">${IC(I.x, 14)}</button></div>`
+    : '';
+  const left = `<section class="card" aria-labelledby="h-entrada">
+    <h2 id="h-entrada">1. Punto de partida</h2>
+    <div class="field"><span>Imagen de referencia <span class="muted" style="font-weight:400">(opcional)</span></span>
+      <div class="row" style="flex-wrap:nowrap;align-items:stretch">${ref}
+        <button type="button" class="drop" id="refdrop" data-act="ref-pick" style="flex:1">${IC(I.upload, 20)}Arrastra una imagen, toca para elegirla o pega con Ctrl+V</button>
+        <input type="file" id="reffile" accept="image/*" hidden></div>
+      <button type="button" class="btn sm" data-act="clip-ref" style="align-self:flex-start">${IC(I.copy, 14)}Pegar imagen copiada</button></div>
+    <label class="field"><span>Tu idea</span><textarea class="input" id="idea" rows="3" placeholder="Ej: sérum sobre una roca junto al mar, golden hour, vibe summer glow, clean y premium">${esc(d.idea)}</textarea></label>
+    <div class="grid2" style="gap:12px">
+      <label class="field"><span>Plantilla</span><select class="input" id="tpl">${tplOpts}</select></label>
+      <div class="field"><span>Formato</span><div class="seg" role="group" aria-label="Formato">${fmtBtns}</div></div>
+    </div>
+    ${matrix}
+    <button type="button" class="btn primary block" data-act="gen-prompts" ${S.busy ? 'disabled' : ''} style="min-height:48px;font-size:15px">${S.busy ? '<span class="spin"></span> Generando prompts…' : 'Generar prompts'}</button>
+  </section>`;
+  return topBar('Crear', `<button class="btn sm" data-act="new-draft">${IC(I.plus, 14)}Nueva creación</button>`) +
+    (S.settings.apiKey ? '' : `<div class="alert info"><b>Conecta Gemini para empezar.</b> Necesitas una clave gratuita de Google AI Studio para analizar referencias y escribir prompts. <button class="btn sm primary" data-go="ajustes">Ir a Ajustes</button></div>`) +
+    (S.error ? `<div class="alert err" role="alert">${esc(S.error)}</div>` : '') +
+    `<div class="grid2">${left}${promptPanel()}</div>`;
+}
+
+function promptPanel() {
+  const d = draft();
+  const p = d.prompts[0];
+  if (!p) {
+    return `<section class="card" aria-labelledby="h-prompt"><h2 id="h-prompt">2. Prompt</h2>
+      <div class="empty">${IC(I.crear, 28)}<span>Escribe tu idea o sube una referencia y presiona <b>Generar prompts</b>.<br>Gemini lo escribe en ${esc(S.settings.promptLang === 'English' ? 'inglés' : 'español')} y lo adapta a cada IA.</span></div></section>`;
+  }
+  if (d.prompts.length > 1) {
+    return `<section class="card" aria-labelledby="h-prompt"><h2 id="h-prompt">2. Prompts</h2>
+      <p style="margin:0">Se generaron <b>${d.prompts.length} prompts</b> con tu matriz.</p>
+      ${analysisChips()}
+      <button class="btn primary" data-go="matriz">Ver la matriz</button></section>`;
+  }
+  const tabs = ['Base', ...enabledModels()];
+  const txt = d.tab === 'Base' ? p.base : (p.versions[d.tab] || p.base);
+  const sug = p.suggested && BRAND[p.suggested] ? p.suggested : 'Gemini';
+  return `<section class="card" aria-labelledby="h-prompt"><h2 id="h-prompt">2. Prompt</h2>
+    ${analysisChips()}
+    <div class="tabs" role="tablist" aria-label="Versión del prompt por modelo">${tabs.map((t) =>
+      `<button role="tab" aria-selected="${d.tab === t}" data-act="ptab" data-v="${t}" style="${t !== 'Base' && BRAND[t] ? `color:${BRAND[t].fg}` : ''}">${BRAND[t] && BRAND[t].logo ? `<img src="${BRAND[t].logo}" alt="" style="width:13px;height:13px">` : ''}${t}</button>`).join('')}</div>
+    <div class="prompt" contenteditable="true" lang="en" id="ptext" aria-label="Prompt editable">${esc(txt)}</div>
+    <div class="row" style="justify-content:space-between"><span class="small muted">${d.tab === 'Base' ? 'Prompt base' : 'Adaptado para ' + esc(d.tab)} · puedes editarlo</span>
+      <button class="btn sm" data-act="copy-prompt">${IC(I.copy, 14)}Copiar</button></div>
+    <div class="suggest"><span class="small" style="font-weight:600;color:var(--mint-dark);text-transform:uppercase;letter-spacing:.04em">Sugerencia de modelo</span>
+      <span>${aiChip(sug, 14)}</span><span style="font-size:13px">${esc(p.reason || '')}</span>
+      <div class="row"><button class="btn primary" data-act="to-compare" data-model="${sug}">Generar en ${esc(sug)}</button>
+        <button class="btn" data-act="to-compare">Comparar en varios modelos</button></div></div>
+  </section>`;
+}
+function analysisChips() {
+  const a = draft().analysis || [];
+  if (!a.length) return '';
+  return `<div class="field"><span>Lo que leyó de tu referencia</span><div class="row" style="gap:6px">${a.map((t) => `<span class="tag" style="font-size:12px;padding:5px 10px">${esc(t)}</span>`).join('')}</div></div>`;
+}
+
+function afterCrear() {
+  const idea = $('#idea'), tpl = $('#tpl'), drop = $('#refdrop'), file = $('#reffile'), pt = $('#ptext');
+  if (idea) idea.addEventListener('input', () => { draft().idea = idea.value; });
+  if (tpl) tpl.addEventListener('change', () => { draft().template = tpl.value; });
+  if (file) file.addEventListener('change', () => { if (file.files[0]) setRef(file.files[0]); });
+  if (drop) {
+    drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('over'); });
+    drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+    drop.addEventListener('drop', (e) => { e.preventDefault(); const f = [...e.dataTransfer.files].find((x) => x.type.startsWith('image/')); if (f) setRef(f); else toast('Eso no es una imagen'); });
+  }
+  if (pt) pt.addEventListener('input', () => {
+    const d = draft(), p = d.prompts[0];
+    if (!p) return;
+    if (d.tab === 'Base') p.base = pt.innerText; else p.versions[d.tab] = pt.innerText;
+    saveSession();
+  });
+}
+function setRef(blob) {
+  const d = draft();
+  if (d.refURL) URL.revokeObjectURL(d.refURL);
+  d.refBlob = blob; d.refURL = URL.createObjectURL(blob); d.refName = blob.name || 'captura';
+  render();
+}
+
+async function saveSession() {
+  const d = draft();
+  const { refURL, tab, refBlob, ...rest } = d;
+  await DB.put('sessions', { ...rest });
+}
+
+async function generatePrompts() {
+  const d = draft();
+  const ideaEl = $('#idea'); if (ideaEl) d.idea = ideaEl.value;
+  if (!d.idea.trim() && !d.refBlob) { toast('Escribe una idea o sube una referencia'); return; }
+  d.clientId = S.ctx.clientId; d.campaignId = S.ctx.campaignId;
+  let list = d.matrixOn ? combos(d.vars) : [{}];
+  if (d.matrixOn && !list.length) { toast('Agrega al menos una variable a la matriz'); return; }
+  if (list.length > 24) { toast('La matriz tiene más de 24 combinaciones'); return; }
+  let template = d.template, recipeTxt = '';
+  if (template.startsWith('receta:')) {
+    const r = S.recipes.find((x) => x.id === template.slice(7));
+    if (r) { recipeTxt = `Usa como base esta receta que ya funcionó en ${r.model}: «${r.prompt}».`; template = 'Receta: ' + r.name; }
+  }
+  const cli = clientById(d.clientId), camp = campaignById(d.campaignId);
+  const lang = S.settings.promptLang === 'English' ? 'English' : 'Spanish';
+  const models = enabledModels();
+  const instr = `Eres un director de arte experto en paid ads y en escribir prompts para IAs de imagen.
+Tarea: a partir de la idea${d.refBlob ? ' y la imagen de referencia adjunta' : ''}, escribe prompts de imagen listos para usar.
+Idea de la diseñadora (puede venir en español o spanglish): «${d.idea || '(sin texto, guíate por la referencia)'}».
+Plantilla: ${template}. ${recipeTxt}
+${cli ? `Cliente: ${cli.name} (${cli.industry || ''}). Notas del cliente: ${cli.notes || 'ninguna'}.` : ''}${camp ? ` Campaña: ${camp.name}.` : ''}
+Formato por defecto: ${d.format}.
+${d.matrixOn ? `Genera exactamente ${list.length} prompts, uno por cada combinación de esta lista y en el mismo orden (si una combinación trae «Formato», usa ese formato en vez del por defecto):\n${list.map((c, i) => `${i + 1}. ${Object.entries(c).map(([k, v]) => `${k}: ${v}`).join(', ')}`).join('\n')}` : 'Genera 1 prompt.'}
+Escribe todos los prompts en ${lang}. Para cada prompt da una versión base y una versión adaptada para cada una de estas IAs: ${models.join(', ')}.
+Cómo adaptar: Gemini → frases descriptivas naturales, incluye el formato. ChatGPT → muy detallado y conversacional; si hay texto dentro de la imagen, ponlo entre comillas exactas. Higgsfield → lenguaje fotográfico/cinematográfico (cámara, lente, luz, movimiento), conciso. Pomelli → estilo brief de marketing: producto, mensaje de campaña, formato y uso en redes. Firefly → descripción concisa con tipo de contenido (foto), composición y estilo; sin nombres de artistas.
+Para cada prompt sugiere qué IA usar entre (${models.join(', ')}) y explica por qué en una frase corta en español. Usa este historial de resultados de la diseñadora para decidir:
+${modelStats(template)}
+${d.refBlob ? 'También describe la referencia en hasta 6 etiquetas cortas en español (luz, composición, paleta, lente, mood, etc.).' : ''}
+Responde solo JSON con esta forma:
+{"analysis":["..."],"prompts":[{"base":"...","versions":{${models.map((m) => `"${m}":"..."`).join(',')}},"suggested":"${models[0] || 'Gemini'}","reason":"..."}]}`;
+  const parts = [{ text: instr }];
+  if (d.refBlob) parts.push({ inlineData: { mimeType: d.refBlob.type || 'image/png', data: await blobToBase64(d.refBlob) } });
+  S.busy = true; S.error = null; render();
+  try {
+    const out = await geminiJSON(parts);
+    const ps = Array.isArray(out.prompts) ? out.prompts : [];
+    if (!ps.length) throw new GeminiError('parse', 'Gemini no devolvió prompts. Intenta de nuevo.');
+    d.analysis = Array.isArray(out.analysis) ? out.analysis.slice(0, 6) : [];
+    d.prompts = ps.slice(0, list.length).map((p, i) => ({
+      id: uid(), n: i + 1, vars: list[i] || {}, base: String(p.base || ''),
+      versions: Object.fromEntries(models.map((m) => [m, String((p.versions && p.versions[m]) || p.base || '')])),
+      suggested: models.includes(p.suggested) ? p.suggested : models[0], reason: String(p.reason || ''),
+      format: (list[i] && list[i].Formato) || d.format, selected: i < 8,
+    }));
+    d.tab = d.prompts[0].suggested || 'Base';
+    d.templateName = template;
+    if (d.refBlob && !d.refImageId) {
+      const refImg = { id: uid(), blob: d.refBlob, kind: 'ref', model: 'Referencia', created: Date.now(), sessionId: d.id, campaignId: d.campaignId, clientId: d.clientId };
+      await DB.put('images', refImg); d.refImageId = refImg.id;
+    }
+    await saveSession(); await reloadData();
+    S.activePrompt = 0;
+    if (d.prompts.length > 1) S.view = 'matriz';
+  } catch (e) {
+    S.error = e.message || 'Algo salió mal al generar los prompts.';
+  } finally {
+    S.busy = false; render();
+  }
+}
+
+/* ============ Matriz ============ */
+function viewMatriz() {
+  const d = draft();
+  if (!d.prompts.length) { S.view = 'crear'; return viewCrear(); }
+  const nSel = d.prompts.filter((p) => p.selected).length;
+  const rows = d.prompts.map((p, i) => {
+    const b = BRAND[p.suggested] || BRAND.Gemini;
+    return `<div class="mrow ${p.selected ? 'sel' : ''}">
+      <label style="display:flex;align-items:center;justify-content:center;width:44px;height:44px"><span class="sr">Seleccionar prompt ${p.n}</span><input type="checkbox" ${p.selected ? 'checked' : ''} data-act="msel" data-i="${i}" style="width:18px;height:18px;accent-color:var(--purple)"></label>
+      <span class="small muted">${p.n}</span>
+      <div class="row" style="gap:6px">${Object.entries(p.vars).map(([k, v], j) => `<span class="tag ${j === 0 ? 'lav' : j === 1 ? 'mint' : ''}" title="${esc(k)}">${esc(v)}</span>`).join('')}</div>
+      <p lang="en" class="clamp" style="margin:0;font-size:13px;color:var(--ink2)">${esc(p.versions[p.suggested] || p.base)}</p>
+      <span>${aiChip(p.suggested, 12)}</span>
+      <button class="iconbtn" aria-label="Abrir prompt ${p.n} en comparar" data-act="mopen" data-i="${i}">${IC(I.right, 15)}</button>
+    </div>`;
+  }).join('');
+  return topBar('Matriz de variaciones', `<button class="btn sm" data-go="crear">Editar variables</button>`) +
+    `<section class="card" style="padding:0;gap:0" aria-label="Prompts de la matriz">
+      <div class="row" style="justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--line)">
+        <div class="row"><label class="row small" style="gap:8px"><input type="checkbox" data-act="mall" ${nSel === d.prompts.length ? 'checked' : ''} style="width:18px;height:18px;accent-color:var(--purple)">Seleccionar todos</label>
+        <span class="small" style="font-weight:600;color:var(--purple)">${nSel} seleccionados</span></div>
+        <div class="row"><button class="btn sm" data-act="mcopy">${IC(I.copy, 14)}Copiar seleccionados</button>
+        <button class="btn sm primary" data-act="mcompare" ${nSel ? '' : 'disabled'}>Llevar ${nSel} a comparar</button></div>
+      </div>
+      <div class="mrow head"><span></span><span>#</span><span>Variables</span><span>Prompt</span><span>Sugerido</span><span></span></div>
+      ${rows}</section>`;
+}
+
+/* ============ Generar y comparar ============ */
+function comparePrompts() {
+  const d = S.draft;
+  if (!d || !d.prompts.length) return [];
+  return d.prompts.length > 1 ? d.prompts.filter((p) => p.selected) : d.prompts;
+}
+function resultFor(promptId, model) {
+  return S.images.find((i) => i.kind === 'result' && i.promptId === promptId && i.model === model);
+}
+function ratioCSS(f) { return (f || '4:5').replace(':', ' / '); }
+
+function viewComparar() {
+  const list = comparePrompts();
+  if (!list.length) {
+    return topBar('Generar y comparar') + `<section class="card"><div class="empty">${IC(I.comparar, 28)}<span>Todavía no hay prompts para comparar.<br>Crea uno en <b>Crear</b> y vuelve aquí.</span><button class="btn primary" data-go="crear">Ir a Crear</button></div></section>`;
+  }
+  if (S.activePrompt >= list.length) S.activePrompt = 0;
+  const p = list[S.activePrompt];
+  const nav = list.length > 1 ? `<div class="row" style="gap:4px;padding:4px;border-radius:999px;background:#fff;border:1px solid var(--line2)">
+      <button class="iconbtn" style="border:0;width:36px;height:36px" aria-label="Prompt anterior" data-act="pprev">${IC(I.left, 16)}</button>
+      <span class="small">Prompt <b>${S.activePrompt + 1} de ${list.length}</b>${Object.values(p.vars).length ? ' · ' + esc(Object.values(p.vars).join(' · ')) : ''}</span>
+      <button class="iconbtn" style="border:0;width:36px;height:36px" aria-label="Prompt siguiente" data-act="pnext">${IC(I.right, 16)}</button></div>` : '';
+  const cards = enabledModels().map((m) => compareCard(p, m)).join('');
+  return topBar('Generar y comparar', `<button class="btn sm" data-go="${S.draft.prompts.length > 1 ? 'matriz' : 'crear'}">Volver al prompt</button>${nav}`) +
+    (S.error ? `<div class="alert err" role="alert">${esc(S.error)}</div>` : '') +
+    `<div class="card tight" style="flex-direction:row;align-items:center;gap:12px"><span class="small muted" style="font-weight:600;text-transform:uppercase;letter-spacing:.04em;flex:0 0 auto">Prompt base</span>
+      <p lang="en" class="clamp" style="margin:0;flex:1;font-size:13px">${esc(p.base)}</p><span class="tag">${esc(p.format)}</span></div>
+    <div class="grid3">${cards}</div>
+    <p class="small muted" style="margin:0">Tip: después de abrir una herramienta puente, copia la imagen que generó y pégala aquí con <kbd>Ctrl</kbd> + <kbd>V</kbd>. Se guarda en la tarjeta que tenga el borde lavanda.</p>`;
+}
+function compareCard(p, m) {
+  const r = resultFor(p.id, m);
+  const b = BRAND[m];
+  const direct = m === 'Gemini' && S.settings.imagesDirect;
+  const target = S.pasteTarget && S.pasteTarget.promptId === p.id && S.pasteTarget.model === m;
+  const sug = p.suggested === m ? ' · sugerido' : '';
+  let status = '<span class="status">Sin empezar</span>', body;
+  if (r) {
+    status = r.mark === 'ok' ? '<span class="status ok">Funcionó</span>' : r.mark === 'bad' ? '<span class="status bad">No funcionó</span>' : `<span class="status">${r.source === 'direct' ? 'Generado' : 'Subido'}</span>`;
+    body = `<img class="img4x5" style="aspect-ratio:${ratioCSS(p.format)};object-fit:contain;background:${b.bg}" src="${imgURL(r)}" alt="Resultado de ${m}">
+      <div class="row" style="flex-wrap:nowrap">
+        <button class="btn block" aria-pressed="${r.mark === 'ok'}" data-act="mark" data-id="${r.id}" data-v="ok" style="${r.mark === 'ok' ? 'background:var(--mint-tint);border-color:var(--mint);color:var(--mint-dark);font-weight:600' : ''}">${IC(I.check, 16)}Funcionó</button>
+        <button class="btn block" aria-pressed="${r.mark === 'bad'}" data-act="mark" data-id="${r.id}" data-v="bad" style="${r.mark === 'bad' ? 'background:var(--red-tint);border-color:#B4392C;color:var(--red);font-weight:600' : ''}">${IC(I.x, 16)}No</button></div>
+      <label class="field"><span style="font-size:12px">Nota</span><input class="input" style="height:40px;font-size:13px" data-note="${r.id}" value="${esc(r.note || '')}" placeholder="¿Qué funcionó o qué no?"></label>
+      <div class="row">${r.mark === 'ok' ? `<button class="btn sm primary" data-act="recipe" data-id="${r.id}">Guardar como receta</button>` : ''}
+        <button class="btn sm" data-act="edit-img" data-id="${r.id}">Editar</button>
+        <button class="btn sm" data-act="dl" data-id="${r.id}">${IC(I.dl, 14)}Descargar</button>
+        <button class="btn sm ghost" data-act="replace" data-p="${p.id}" data-m="${m}">Reemplazar</button></div>`;
+  } else if (direct) {
+    body = `<div class="drop" style="aspect-ratio:${ratioCSS(p.format)};min-height:0">${IC(I.crear, 24)}<span>Gemini genera la imagen directo en la app.</span>
+      <button class="btn primary" data-act="gen-direct" data-p="${p.id}" ${S.busy ? 'disabled' : ''}>${S.busy === p.id ? '<span class="spin"></span> Generando…' : 'Generar con Gemini'}</button>
+      <span class="small">Se cobra en tu cuenta de Google</span></div>
+      <button class="btn sm ghost" data-act="bridge" data-p="${p.id}" data-m="${m}">O usar la app de Gemini como puente</button>`;
+  } else {
+    body = `<button class="btn primary" data-act="bridge" data-p="${p.id}" data-m="${m}">${IC(I.ext, 16)}Copiar prompt y abrir ${m}</button>
+      <button class="drop ${target ? 'hot' : ''}" data-act="paste-here" data-p="${p.id}" data-m="${m}" style="aspect-ratio:${ratioCSS(p.format)};min-height:0;max-height:420px">
+        ${IC(I.upload, 26)}<b style="font-weight:600">${target ? 'Lista para recibir la imagen' : 'Trae el resultado'}</b><span class="small">Pega con Ctrl+V, arrastra o toca aquí para elegir el archivo</span></button>
+      <button class="btn sm" data-act="clip-paste" data-p="${p.id}" data-m="${m}">${IC(I.copy, 14)}Pegar imagen copiada</button>`;
+  }
+  return `<article class="card tight" style="${p.suggested === m ? 'border:2px solid var(--lav)' : ''}" aria-label="Resultado de ${m}" data-dropcard data-p="${p.id}" data-m="${m}">
+    <div class="row" style="justify-content:space-between;flex-wrap:nowrap"><div style="display:flex;flex-direction:column;gap:4px">${aiChip(m)}<span class="small muted">${direct ? 'Conexión directa' : 'Puente'}${sug}</span></div>${status}</div>
+    ${body}</article>`;
+}
+
+async function saveResult(blob, promptId, model, source = 'bridge') {
+  if (!blob || !blob.type.startsWith('image/')) { toast('Ese archivo no es una imagen. Usa PNG, JPG o WEBP.'); return; }
+  const d = S.draft;
+  const p = d.prompts.find((x) => x.id === promptId);
+  const old = resultFor(promptId, model);
+  if (old) await DB.del('images', old.id);
+  await DB.put('images', {
+    id: uid(), blob, kind: 'result', model, promptId, sessionId: d.id, campaignId: d.campaignId, clientId: d.clientId,
+    prompt: p ? (p.versions[model] || p.base) : '', format: p ? p.format : d.format, template: d.templateName || d.template,
+    vars: p ? p.vars : {}, mark: null, note: '', created: Date.now(), source,
+  });
+  S.pasteTarget = null;
+  await reloadData(); render(); toast(`Imagen guardada en ${model}`);
+}
+async function genDirect(promptId) {
+  const d = S.draft, p = d.prompts.find((x) => x.id === promptId);
+  S.busy = promptId; S.error = null; render();
+  try {
+    const blob = await geminiImage(p.versions.Gemini || p.base, p.format);
+    S.busy = false;
+    await saveResult(blob, promptId, 'Gemini', 'direct');
+  } catch (e) {
+    S.error = e.kind === 'limit' ? 'Llegaste al límite de Gemini por ahora. Puedes seguir con un puente mientras tanto.' : e.message;
+    S.busy = false; render();
+  }
+}
+async function openBridge(promptId, model) {
+  const p = S.draft.prompts.find((x) => x.id === promptId);
+  const text = p.versions[model] || p.base;
+  try { await navigator.clipboard.writeText(text); toast(`Prompt copiado. Pégalo en ${model} con Ctrl+V`); } catch (e) { toast('No se pudo copiar automáticamente; cópialo desde Crear'); }
+  const url = (S.settings.bridges[model] || {}).url;
+  if (url) window.open(url, '_blank', 'noopener');
+  S.pasteTarget = { promptId, model };
+  render();
+}
+function recipeModal(imgId) {
+  const img = S.images.find((i) => i.id === imgId);
+  const def = `${img.template || 'Receta'}${img.vars && Object.values(img.vars).length ? ' · ' + Object.values(img.vars).join(' · ') : ''}`;
+  modal({
+    title: 'Guardar como receta', okLabel: 'Guardar receta',
+    body: `<label class="field"><span>Nombre de la receta</span><input class="input" name="name" value="${esc(def)}"></label>
+      <div class="field"><span>Prompt (${esc(img.model)})</span><div class="prompt" style="min-height:0">${esc(img.prompt)}</div></div>
+      <label class="row small"><input type="checkbox" name="client" checked style="accent-color:var(--purple)"> Solo para este cliente</label>`,
+    onOk: async (f) => {
+      await DB.put('recipes', { id: uid(), name: f.name || def, model: img.model, prompt: img.prompt, template: img.template, format: img.format, clientId: f.client ? img.clientId : null, uses: 0, created: Date.now(), imageId: img.id });
+      await reloadData(); render(); toast('Receta guardada. Aparece en Plantillas al crear.');
+    },
+  });
+}
+function downloadImage(img, name) {
+  const a = document.createElement('a');
+  a.href = imgURL(img);
+  const ext = (img.blob.type.split('/')[1] || 'png').replace('jpeg', 'jpg');
+  a.download = (name || `whoops-${img.model}-${new Date(img.created).toISOString().slice(0, 10)}-${img.id.slice(-4)}`) + '.' + ext;
+  document.body.appendChild(a); a.click(); a.remove();
+}
+
+/* ============ Biblioteca ============ */
+function libImages() {
+  const f = S.libFilter;
+  return S.images.filter((i) => {
+    if (i.kind === 'ref') return false;
+    if (f.campaign === 'ctx') {
+      if (S.ctx.campaignId) { if (i.campaignId !== S.ctx.campaignId) return false; }
+      else if (S.ctx.clientId) { if (i.clientId !== S.ctx.clientId) return false; }
+      else if (i.clientId || i.campaignId) return false;
+    }
+    if (f.model !== 'all' && i.model !== f.model) return false;
+    if (f.mark === 'ok' && i.mark !== 'ok') return false;
+    if (f.mark === 'bad' && i.mark !== 'bad') return false;
+    if (f.mark === 'none' && i.mark) return false;
+    return true;
+  });
+}
+function viewBiblioteca() {
+  const tab = S.libTab;
+  const tabs = `<div class="tabs" role="tablist" aria-label="Contenido de la biblioteca">
+    ${[['images', 'Imágenes'], ['recipes', 'Recetas ganadoras'], ['history', 'Historial de prompts']].map(([k, l]) => `<button role="tab" aria-selected="${tab === k}" data-act="libtab" data-v="${k}">${l}</button>`).join('')}</div>`;
+  let content = '';
+  if (tab === 'images') {
+    const imgs = libImages();
+    const f = S.libFilter;
+    const sel = [...S.libSel].filter((id) => imgs.some((i) => i.id === id));
+    const filters = `<div class="row">
+      <label class="row small muted" style="gap:6px">Mostrar<select class="input" style="height:40px;width:auto" data-filter="campaign"><option value="ctx" ${f.campaign === 'ctx' ? 'selected' : ''}>Solo ${S.ctx.campaignId ? 'esta campaña' : S.ctx.clientId ? 'este cliente' : 'General'}</option><option value="all" ${f.campaign === 'all' ? 'selected' : ''}>Todo</option></select></label>
+      <label class="row small muted" style="gap:6px">Modelo<select class="input" style="height:40px;width:auto" data-filter="model"><option value="all">Todos</option>${[...MODELS, 'Edición'].map((m) => `<option ${f.model === m ? 'selected' : ''}>${m}</option>`).join('')}</select></label>
+      <label class="row small muted" style="gap:6px">Resultado<select class="input" style="height:40px;width:auto" data-filter="mark">${[['all', 'Todos'], ['ok', 'Funcionó'], ['bad', 'No funcionó'], ['none', 'Sin marcar']].map(([v, l]) => `<option value="${v}" ${f.mark === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label></div>`;
+    const tiles = imgs.map((i) => {
+      const b = BRAND[i.model] || BRAND.Referencia;
+      const camp = campaignById(i.campaignId);
+      return `<figure class="tile" style="margin:0">
+        <div class="imgwrap"><img src="${imgURL(i)}" alt="Imagen de ${esc(i.model)}" style="width:100%;aspect-ratio:${ratioCSS(i.format)};object-fit:cover;display:block;background:${b.bg}">
+          <label class="chk"><span class="sr">Seleccionar</span><input type="checkbox" data-act="libsel" data-id="${i.id}" ${S.libSel.has(i.id) ? 'checked' : ''} style="width:16px;height:16px;margin:0;accent-color:var(--purple)"></label>
+          ${i.mark === 'ok' ? `<span class="mark ok" aria-label="Funcionó">✓</span>` : i.mark === 'bad' ? `<span class="mark bad" aria-label="No funcionó">✕</span>` : ''}</div>
+        <figcaption style="display:flex;flex-direction:column;gap:2px;padding:0 4px">
+          <span style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:${b.fg}">${b.logo ? `<img src="${b.logo}" alt="" style="width:14px;height:14px">` : ''}${esc(i.model)}</span>
+          <span class="small muted">${esc(camp ? camp.name : 'General')} · ${esc(i.format || '')}</span>
+          ${i.note ? `<span class="small" style="color:var(--ink3)">${esc(i.note)}</span>` : ''}</figcaption>
+        <div class="actions"><button class="btn sm" data-act="edit-img" data-id="${i.id}">Editar</button><button class="btn sm" data-act="dl" data-id="${i.id}" aria-label="Descargar">${IC(I.dl, 14)}</button><button class="btn sm" data-act="as-ref" data-id="${i.id}">Usar de referencia</button></div>
+      </figure>`;
+    }).join('');
+    content = `<div class="row" style="justify-content:space-between">${filters}
+      <div class="row"><span class="small muted">${sel.length} seleccionadas</span>
+      <button class="btn sm" data-act="libdl" ${sel.length ? '' : 'disabled'}>${IC(I.dl, 14)}Descargar seleccionadas</button>
+      <button class="btn sm ghost" data-act="libdel" ${sel.length ? '' : 'disabled'} style="color:var(--red)">${IC(I.trash, 14)}Eliminar</button></div></div>
+      ${imgs.length ? `<div class="grid4">${tiles}</div>` : `<section class="card"><div class="empty">${IC(I.biblioteca, 28)}<span>Aún no hay imágenes aquí.<br>Las imágenes que generes o pegues desde un puente aparecen en esta biblioteca.</span><button class="btn primary" data-go="crear">Crear algo</button></div></section>`}`;
+  } else if (tab === 'recipes') {
+    const rs = S.recipes.filter((r) => !S.ctx.clientId || !r.clientId || r.clientId === S.ctx.clientId);
+    content = rs.length ? `<div class="grid3">${rs.map((r) => `<article class="card tight">
+        <div class="row" style="justify-content:space-between"><h3>${esc(r.name)}</h3>${aiChip(r.model, 12)}</div>
+        <p lang="en" class="clamp" style="margin:0;font-size:12px;color:var(--ink3);-webkit-line-clamp:4">${esc(r.prompt)}</p>
+        <div class="row" style="justify-content:space-between"><span class="small muted">${r.clientId ? esc((clientById(r.clientId) || {}).name || '') : 'Todos los clientes'} · usada ${r.uses || 0} ${r.uses === 1 ? 'vez' : 'veces'}</span>
+        <div class="row"><button class="btn sm ghost" data-act="recipe-del" data-id="${r.id}" aria-label="Eliminar receta" style="color:var(--red)">${IC(I.trash, 14)}</button><button class="btn sm primary" data-act="recipe-use" data-id="${r.id}">Usar receta</button></div></div></article>`).join('')}</div>`
+      : `<section class="card"><div class="empty">${IC(I.check, 28)}<span>Todavía no tienes recetas.<br>Marca un resultado con ✓ en Generar y comparar y elige «Guardar como receta».</span></div></section>`;
+  } else {
+    const ss = S.sessions.filter((s) => s.prompts && s.prompts.length);
+    content = ss.length ? `<section class="card" style="padding:0;gap:0">${ss.map((s) => {
+      const camp = campaignById(s.campaignId);
+      return `<div class="row" style="justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--bg);flex-wrap:nowrap">
+        <div style="min-width:0"><div style="font-weight:600" class="clamp">${esc(s.idea || '(desde referencia)')}</div>
+        <div class="small muted">${new Date(s.created).toLocaleString('es-CL', { dateStyle: 'medium', timeStyle: 'short' })} · ${esc(camp ? camp.name : 'General')} · ${s.prompts.length} ${s.prompts.length === 1 ? 'prompt' : 'prompts'}</div></div>
+        <button class="btn sm" data-act="session-open" data-id="${s.id}">Abrir</button></div>`;
+    }).join('')}</section>` : `<section class="card"><div class="empty"><span>Aún no hay prompts generados.</span></div></section>`;
+  }
+  return topBar('Biblioteca', `<button class="btn sm primary" data-new-client>+ Nuevo cliente</button>`) + tabs + content +
+    `<p class="small muted" style="margin:0">Todo se guarda en este navegador. Haz un respaldo de vez en cuando desde Ajustes.</p>`;
+}
+async function openSession(id) {
+  const s = S.sessions.find((x) => x.id === id);
+  if (!s) return;
+  const d = { ...structuredClone(s), tab: (s.prompts[0] && s.prompts[0].suggested) || 'Base' };
+  if (s.refImageId) {
+    const ref = S.images.find((i) => i.id === s.refImageId);
+    if (ref) { d.refBlob = ref.blob; d.refURL = URL.createObjectURL(ref.blob); }
+  }
+  S.draft = d; S.ctx = { clientId: s.clientId || null, campaignId: s.campaignId || null }; S.activePrompt = 0;
+  go(s.prompts.length > 1 ? 'matriz' : 'comparar');
+}
+
+/* ============ Edición rápida ============ */
+S.edit = { bg: 'white', bgMode: 'local', shadow: true, ratio: '9:16', extMode: 'local', scale: 2, view: 'split', previewId: null };
+
+function viewEdicion() {
+  const img = S.images.find((i) => i.id === S.editImageId);
+  if (!img) {
+    const recent = S.images.filter((i) => i.kind !== 'ref').slice(0, 12);
+    return topBar('Edición rápida') + `<section class="card"><h2>Elige una imagen</h2>
+      ${recent.length ? `<div class="grid4">${recent.map((i) => `<button class="tile" style="cursor:pointer;text-align:left" data-act="edit-img" data-id="${i.id}"><img src="${imgURL(i)}" alt="Imagen de ${esc(i.model)}" style="width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:10px"><span class="small" style="padding:0 4px 4px;color:${(BRAND[i.model] || BRAND.Referencia).fg};font-weight:600">${esc(i.model)}</span></button>`).join('')}</div>`
+        : `<div class="empty">${IC(I.edicion, 28)}<span>No tienes imágenes todavía. Genera o pega alguna en Generar y comparar.</span></div>`}
+      <div class="row"><button class="btn" data-act="edit-upload">${IC(I.upload, 16)}Subir una imagen para editar</button><input type="file" id="editfile" accept="image/*" hidden></div></section>`;
+  }
+  const root = img.rootId || img.id;
+  const versions = S.images.filter((i) => i.id === root || i.rootId === root).sort((a, b) => a.created - b.created);
+  const original = versions[0];
+  const shown = S.images.find((i) => i.id === S.edit.previewId) || img;
+  const direct = S.settings.imagesDirect;
+  const E = S.edit;
+  const methodSeg = (key, val) => direct ? `<div class="seg" role="group" aria-label="Método"><button type="button" aria-pressed="${val === 'local'}" data-act="eset" data-k="${key}" data-v="local">En tu computador (gratis)</button><button type="button" aria-pressed="${val === 'gemini'}" data-act="eset" data-k="${key}" data-v="gemini">Con Gemini (pago)</button></div>` : '';
+  const busy = S.busy === 'edit';
+  return topBar('Edición rápida', `<button class="btn sm" data-act="edit-close">Elegir otra imagen</button>
+      <button class="btn sm" data-act="dl" data-id="${shown.id}">${IC(I.dl, 14)}Descargar</button>`) +
+    (S.error ? `<div class="alert err" role="alert">${esc(S.error)}</div>` : '') +
+    `<div style="display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start">
+    <section class="card" style="flex:999 1 520px" aria-label="Vista previa">
+      <div class="tabs" role="tablist" aria-label="Modo de vista" style="align-self:center">
+        <button role="tab" aria-selected="${E.view === 'split'}" data-act="eset" data-k="view" data-v="split">Antes / después</button>
+        <button role="tab" aria-selected="${E.view === 'one'}" data-act="eset" data-k="view" data-v="one">Solo resultado</button></div>
+      <div style="display:grid;grid-template-columns:${E.view === 'split' && shown.id !== original.id ? '1fr 1fr' : '1fr'};gap:12px">
+        ${E.view === 'split' && shown.id !== original.id ? `<figure style="margin:0"><div class="imgbox" style="height:480px;background:repeating-conic-gradient(#F0F0F2 0 25%,#fff 0 50%) 0 0/20px 20px"><img src="${imgURL(original)}" alt="Antes"></div><figcaption class="small muted" style="margin-top:6px">Antes</figcaption></figure>` : ''}
+        <figure style="margin:0"><div class="imgbox" style="height:480px;background:repeating-conic-gradient(#F0F0F2 0 25%,#fff 0 50%) 0 0/20px 20px"><img src="${imgURL(shown)}" alt="Resultado"></div><figcaption class="small muted" style="margin-top:6px">${shown.id === original.id ? 'Original' : 'Después'} · ${esc(shown.editLabel || shown.model)}</figcaption></figure>
+      </div>
+      <div class="field"><span>Versiones</span><div class="row">${versions.map((v) => `<button data-act="eprev" data-id="${v.id}" style="width:84px;padding:3px;border-radius:10px;border:${v.id === shown.id ? '2px solid var(--purple)' : '1px solid var(--line2)'};background:#fff;cursor:pointer;display:flex;flex-direction:column;gap:4px;font-size:11px" aria-label="Ver ${esc(v.editLabel || 'original')}"><img src="${imgURL(v)}" alt="" style="width:100%;aspect-ratio:4/5;object-fit:cover;border-radius:7px">${esc(v.editLabel || 'Original')}</button>`).join('')}</div></div>
+    </section>
+    <aside style="flex:1 1 300px;max-width:380px;display:flex;flex-direction:column;gap:16px" aria-label="Herramientas">
+      <p class="small muted" style="margin:0">Cada herramienta se aplica sobre la versión que estás viendo y guarda una versión nueva.</p>
+      <section class="card tight"><h2 style="font-size:15px">Fondo</h2><span class="small muted">Recorta el producto y lo deja sobre un fondo sólido.</span>
+        <div class="seg" role="group" aria-label="Color de fondo"><button type="button" aria-pressed="${E.bg === 'white'}" data-act="eset" data-k="bg" data-v="white">Blanco</button><button type="button" aria-pressed="${E.bg === 'black'}" data-act="eset" data-k="bg" data-v="black">Negro</button></div>
+        ${methodSeg('bgMode', E.bgMode)}
+        <label class="row small"><input type="checkbox" data-act="eshadow" ${E.shadow ? 'checked' : ''} style="width:18px;height:18px;accent-color:var(--purple)">Sombra suave bajo el producto</label>
+        <button class="btn primary" data-act="do-bg" ${busy ? 'disabled' : ''}>${busy && S.editStep === 'bg' ? '<span class="spin"></span> Recortando…' : 'Aplicar fondo'}</button>
+        ${E.bgMode === 'local' ? '<span class="small muted">La primera vez descarga un modelo de recorte (unos segundos).</span>' : ''}</section>
+      <section class="card tight"><h2 style="font-size:15px">Ampliar</h2><span class="small muted">Lleva la imagen a otro formato.</span>
+        <div class="seg" role="group" aria-label="Formato destino">${['1:1', '4:5', '9:16', '16:9'].map((r) => `<button type="button" aria-pressed="${E.ratio === r}" data-act="eset" data-k="ratio" data-v="${r}">${r}</button>`).join('')}</div>
+        ${methodSeg('extMode', E.extMode)}
+        <span class="small muted">${E.extMode === 'gemini' && direct ? 'Gemini completa la escena con IA.' : 'Rellena los bordes con una versión desenfocada de la misma imagen (gratis). Para completar la escena con IA, activa las imágenes directas en Ajustes o usa un puente.'}</span>
+        <button class="btn primary" data-act="do-ext" ${busy ? 'disabled' : ''}>${busy && S.editStep === 'ext' ? '<span class="spin"></span> Ampliando…' : 'Ampliar'}</button></section>
+      <section class="card tight"><h2 style="font-size:15px">Mejorar calidad</h2><span class="small muted">Sube la resolución y aplica nitidez.</span>
+        <div class="seg" role="group" aria-label="Escala">${[2, 4].map((n) => `<button type="button" aria-pressed="${E.scale === n}" data-act="eset" data-k="scale" data-v="${n}">${n}×</button>`).join('')}</div>
+        <button class="btn primary" data-act="do-up" ${busy ? 'disabled' : ''}>${busy && S.editStep === 'up' ? '<span class="spin"></span> Mejorando…' : 'Mejorar'}</button></section>
+    </aside></div>`;
+}
+
+/* --- herramientas locales --- */
+function canvasToBlob(c, type = 'image/png', q) { return new Promise((r) => c.toBlob(r, type, q)); }
+async function bitmap(blob) { return await createImageBitmap(blob); }
+function ratioNum(r) { const [a, b] = r.split(':').map(Number); return a / b; }
+
+async function removeBackground(blob) {
+  let mod;
+  try { mod = await import('https://esm.sh/@imgly/background-removal@1'); } catch (e) {
+    throw new Error('No se pudo cargar la herramienta de recorte. Revisa tu conexión a internet.');
+  }
+  const fn = mod.removeBackground || (mod.default && mod.default.removeBackground) || mod.default;
+  return await fn(blob);
+}
+async function compositeOnColor(cutout, color, shadow) {
+  const bm = await bitmap(cutout);
+  const pad = Math.round(Math.max(bm.width, bm.height) * 0.04);
+  const c = document.createElement('canvas');
+  c.width = bm.width; c.height = bm.height;
+  const x = c.getContext('2d');
+  x.fillStyle = color; x.fillRect(0, 0, c.width, c.height);
+  if (shadow) {
+    x.save();
+    x.shadowColor = color === '#FFFFFF' ? 'rgba(0,0,0,0.18)' : 'rgba(255,255,255,0.10)';
+    x.shadowBlur = pad; x.shadowOffsetY = Math.round(pad / 2);
+    x.drawImage(bm, 0, 0); x.restore();
+  }
+  x.drawImage(bm, 0, 0);
+  return canvasToBlob(c, 'image/png');
+}
+async function extendBlur(blob, ratio) {
+  const bm = await bitmap(blob);
+  const target = ratioNum(ratio), cur = bm.width / bm.height;
+  let W = bm.width, H = bm.height;
+  if (target > cur) W = Math.round(bm.height * target); else H = Math.round(bm.width / target);
+  const c = document.createElement('canvas'); c.width = W; c.height = H;
+  const x = c.getContext('2d');
+  const cover = Math.max(W / bm.width, H / bm.height);
+  x.filter = `blur(${Math.round(Math.max(W, H) / 30)}px) saturate(1.05)`;
+  const bw = bm.width * cover * 1.1, bh = bm.height * cover * 1.1;
+  x.drawImage(bm, (W - bw) / 2, (H - bh) / 2, bw, bh);
+  x.filter = 'none';
+  x.fillStyle = 'rgba(255,255,255,0.06)'; x.fillRect(0, 0, W, H);
+  x.drawImage(bm, Math.round((W - bm.width) / 2), Math.round((H - bm.height) / 2));
+  return canvasToBlob(c, 'image/png');
+}
+async function upscale(blob, factor) {
+  const bm = await bitmap(blob);
+  const maxSide = 6000;
+  const f = Math.min(factor, maxSide / Math.max(bm.width, bm.height));
+  let src = document.createElement('canvas'); src.width = bm.width; src.height = bm.height;
+  src.getContext('2d').drawImage(bm, 0, 0);
+  let cur = 1;
+  while (cur < f) {
+    const step = Math.min(2, f / cur);
+    const n = document.createElement('canvas');
+    n.width = Math.round(src.width * step); n.height = Math.round(src.height * step);
+    const nx = n.getContext('2d'); nx.imageSmoothingEnabled = true; nx.imageSmoothingQuality = 'high';
+    nx.drawImage(src, 0, 0, n.width, n.height);
+    src = n; cur *= step;
+  }
+  sharpen(src, 0.45);
+  return canvasToBlob(src, 'image/png');
+}
+function sharpen(canvas, amount) {
+  const x = canvas.getContext('2d');
+  const { width: w, height: h } = canvas;
+  const img = x.getImageData(0, 0, w, h), d = img.data, o = new Uint8ClampedArray(d);
+  const c = 1 + 4 * amount, s = -amount;
+  for (let y = 1; y < h - 1; y++) {
+    for (let xx = 1; xx < w - 1; xx++) {
+      const i = (y * w + xx) * 4;
+      for (let k = 0; k < 3; k++) {
+        const v = c * o[i + k] + s * (o[i - 4 + k] + o[i + 4 + k] + o[i - w * 4 + k] + o[i + w * 4 + k]);
+        d[i + k] = v;
+      }
+    }
+  }
+  x.putImageData(img, 0, 0);
+}
+
+async function runEdit(step) {
+  const base = S.images.find((i) => i.id === S.edit.previewId) || S.images.find((i) => i.id === S.editImageId);
+  if (!base) return;
+  const E = S.edit;
+  S.busy = 'edit'; S.editStep = step; S.error = null; render();
+  try {
+    let out, label, format = base.format;
+    if (step === 'bg') {
+      const color = E.bg === 'white' ? '#FFFFFF' : '#141414';
+      if (E.bgMode === 'gemini' && S.settings.imagesDirect) {
+        out = await geminiImage(`Replace the background of this image with a solid pure ${E.bg === 'white' ? 'white (#FFFFFF)' : 'black (#141414)'} studio background. Keep the product and subject exactly as they are, same position, lighting and details.${E.shadow ? ' Add a soft, natural contact shadow under the product.' : ''}`, base.format, base.blob);
+      } else {
+        out = await compositeOnColor(await removeBackground(base.blob), color, E.shadow);
+      }
+      label = E.bg === 'white' ? 'Fondo blanco' : 'Fondo negro';
+    } else if (step === 'ext') {
+      if (E.extMode === 'gemini' && S.settings.imagesDirect) {
+        out = await geminiImage(`Extend this image to a ${E.ratio} aspect ratio by outpainting the surroundings naturally. Keep the original content, product and lighting unchanged and centered.`, E.ratio, base.blob);
+      } else {
+        out = await extendBlur(base.blob, E.ratio);
+      }
+      label = 'Ampliada ' + E.ratio; format = E.ratio;
+    } else {
+      out = await upscale(base.blob, E.scale);
+      label = 'Calidad ' + E.scale + '×';
+    }
+    const n = { ...base, id: uid(), blob: out, kind: 'edit', model: 'Edición', parentId: base.id, rootId: base.rootId || base.id, editLabel: label, format, mark: null, note: '', created: Date.now(), source: 'edit' };
+    await DB.put('images', n);
+    await reloadData();
+    S.edit.previewId = n.id;
+    toast(label + ': versión guardada');
+  } catch (e) {
+    S.error = e.message || 'No se pudo aplicar la edición.';
+  } finally {
+    S.busy = false; S.editStep = null; render();
+  }
+}
+
+/* ============ Ajustes ============ */
+function viewAjustes() {
+  const st = S.settings;
+  const bridges = MODELS.map((m) => {
+    const b = st.bridges[m] || { on: true, url: '' };
+    return `<div class="row" style="flex-wrap:nowrap;padding:10px 0;border-top:1px solid var(--bg)">
+      <span style="width:32px;height:32px;border-radius:9px;background:${BRAND[m].bg};display:flex;align-items:center;justify-content:center;flex:0 0 32px"><img src="${BRAND[m].logo}" alt="" style="width:16px;height:16px"></span>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px"><b style="font-weight:600;color:${BRAND[m].fg}">${m}</b>
+        <label><span class="sr">Link de ${m}</span><input class="input" style="height:36px;font-size:12px" data-bridge-url="${m}" value="${esc(b.url)}"></label></div>
+      <button type="button" class="switch" role="switch" aria-checked="${b.on}" aria-label="Mostrar ${m} al comparar" data-act="bridge-on" data-m="${m}"></button></div>`;
+  }).join('');
+  return topBar('Ajustes') + `<div class="grid2" style="align-items:start">
+    <div style="display:flex;flex-direction:column;gap:20px">
+      <section class="card" aria-labelledby="h-gem">
+        <div class="row" style="justify-content:space-between">${aiChip('Gemini', 15)}${st.apiKey ? '<span class="status ok">Clave guardada</span>' : '<span class="status warn">Sin clave</span>'}</div>
+        <h2 id="h-gem" class="sr">Gemini</h2>
+        <label class="field"><span>Clave de API de Gemini</span>
+          <div class="row" style="flex-wrap:nowrap"><input class="input" type="password" id="apikey" value="${esc(st.apiKey)}" placeholder="Pega aquí tu clave" autocomplete="off">
+          <button class="btn" data-act="key-save">Guardar</button><button class="btn" data-act="key-test" ${S.busy ? 'disabled' : ''}>${S.busy === 'test' ? '<span class="spin"></span>' : 'Probar'}</button></div></label>
+        <span class="small muted">¿No tienes una? Créala gratis en <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a> con tu cuenta de Google. La clave queda guardada solo en este navegador.</span>
+        <label class="field"><span>Modelo de texto (prompts y análisis)</span>
+          <select class="input" data-set="textModel">${['gemini-3.5-flash', 'gemini-3-flash-preview', 'gemini-2.5-flash'].map((m) => `<option ${st.textModel === m ? 'selected' : ''}>${m}</option>`).join('')}</select></label>
+        <div class="alert info" style="font-size:12px">En el nivel gratuito, Google puede usar lo que envías para mejorar sus productos. No subas material sensible de clientes.</div>
+      </section>
+      <section class="card" aria-labelledby="h-img">
+        <div class="row" style="justify-content:space-between;flex-wrap:nowrap"><div><h2 id="h-img" style="font-size:15px">Imágenes directas con Gemini</h2>
+          <span class="small muted">Genera y edita imágenes dentro de la app. Requiere facturación activa en Google: cerca de US$0,067 por imagen a 1K con Nano Banana 2.</span></div>
+          <button type="button" class="switch" role="switch" aria-checked="${st.imagesDirect}" aria-label="Activar imágenes directas" data-act="direct"></button></div>
+        ${st.imagesDirect ? `<label class="field"><span>Modelo de imagen</span><select class="input" data-set="imageModel">${['gemini-3.1-flash-image', 'gemini-3-pro-image', 'gemini-2.5-flash-image'].map((m) => `<option ${st.imageModel === m ? 'selected' : ''}>${m}</option>`).join('')}</select></label>` : '<span class="small">Mientras esté apagado, Gemini funciona como puente con su app gratuita.</span>'}
+      </section>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:20px">
+      <section class="card" aria-labelledby="h-br"><div><h2 id="h-br" style="font-size:15px">Puentes</h2><span class="small muted">Herramientas que abres en otra pestaña; el resultado lo traes con Ctrl+V.</span></div>${bridges}</section>
+      <section class="card" aria-labelledby="h-pref"><h2 id="h-pref" style="font-size:15px">Preferencias</h2>
+        <div class="grid2" style="gap:12px">
+          <label class="field"><span>Idioma de los prompts</span><select class="input" data-set="promptLang"><option ${st.promptLang === 'English' ? 'selected' : ''}>English</option><option ${st.promptLang === 'Español' ? 'selected' : ''}>Español</option></select></label>
+          <label class="field"><span>Formato por defecto</span><select class="input" data-set="defaultFormat">${FORMATS.map((f) => `<option ${st.defaultFormat === f ? 'selected' : ''}>${f}</option>`).join('')}</select></label></div>
+        <div class="field"><span>Atajos</span><div class="small" style="display:grid;grid-template-columns:1fr auto;gap:8px">
+          <span>Pegar imagen (referencia o resultado de un puente)</span><kbd>Ctrl V</kbd><span>Generar prompts</span><kbd>Ctrl Enter</kbd></div></div></section>
+      <section class="card" aria-labelledby="h-data"><h2 id="h-data" style="font-size:15px">Tus datos</h2>
+        <span class="small muted">Todo vive en este navegador. Haz un respaldo para no perder nada si cambias de computador o limpias el navegador.</span>
+        <div class="row"><button class="btn" data-act="backup">${IC(I.dl, 16)}Descargar respaldo</button>
+          <button class="btn" data-act="restore">${IC(I.upload, 16)}Restaurar respaldo</button><input type="file" id="restorefile" accept="application/json,.json" hidden>
+          <button class="btn ghost" data-act="wipe" style="color:var(--red)">Borrar todo</button></div></section>
+    </div></div>`;
+}
+async function testKey() {
+  S.busy = 'test'; render();
+  try {
+    await geminiCall(S.settings.textModel, [{ text: 'Responde solo: ok' }], { maxOutputTokens: 20 });
+    bumpUsage('text');
+    toast('¡Gemini conectado! Tu clave funciona.');
+  } catch (e) { toast(e.message, 5000); }
+  S.busy = false; render();
+}
+async function backup() {
+  const data = {};
+  for (const st of ['clients', 'campaigns', 'sessions', 'recipes']) data[st] = await DB.all(st);
+  const imgs = await DB.all('images');
+  data.images = await Promise.all(imgs.map(async (i) => ({ ...i, blob: undefined, b64: await blobToBase64(i.blob), mime: i.blob.type })));
+  data.settings = { ...S.settings, apiKey: '' };
+  data.version = 1;
+  const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = `whoops-ai-respaldo-${today()}.json`;
+  document.body.appendChild(a); a.click(); a.remove();
+  toast('Respaldo descargado (sin tu clave de API)');
+}
+async function restore(file) {
+  try {
+    const data = JSON.parse(await file.text());
+    if (!data.version) throw new Error('formato');
+    for (const st of ['clients', 'campaigns', 'sessions', 'recipes']) for (const o of data[st] || []) await DB.put(st, o);
+    for (const i of data.images || []) { const { b64, mime, ...rest } = i; await DB.put('images', { ...rest, blob: base64ToBlob(b64, mime) }); }
+    await reloadData(); render(); toast('Respaldo restaurado');
+  } catch (e) { toast('Ese archivo no es un respaldo de Whoops AI!'); }
+}
+
+/* ============ Eventos ============ */
+async function updateImage(id, patch) {
+  const img = S.images.find((i) => i.id === id);
+  if (!img) return;
+  Object.assign(img, patch);
+  await DB.put('images', img);
+}
+function pickFile(input, cb) {
+  const el = $(input);
+  if (!el) return;
+  el.onchange = () => { if (el.files[0]) cb(el.files[0]); el.value = ''; };
+  el.click();
+}
+async function readClipboardImage() {
+  if (!navigator.clipboard || !navigator.clipboard.read) { toast('Tu navegador no permite leer el portapapeles. Toca la zona punteada para elegir el archivo.', 4500); return null; }
+  try {
+    const items = await navigator.clipboard.read();
+    for (const it of items) {
+      const type = it.types.find((x) => x.startsWith('image/'));
+      if (type) return await it.getType(type);
+    }
+    toast('No hay una imagen copiada. Mantén presionada la imagen en la otra app y elige «Copiar».', 4500);
+  } catch (e) { toast('No se pudo leer el portapapeles. Permite el acceso o elige el archivo.', 4500); }
+  return null;
+}
+function selectedCompareIndex(promptId) { return comparePrompts().findIndex((p) => p.id === promptId); }
+
+document.addEventListener('click', async (e) => {
+  const t = e.target.closest('[data-act]');
+  if (!t) return;
+  const a = t.dataset.act, d = S.draft;
+  switch (a) {
+    /* Crear */
+    case 'fmt': draft().format = t.dataset.v; render(); break;
+    case 'matrix': draft().matrixOn = !draft().matrixOn; render(); break;
+    case 'var-del': draft().vars[t.dataset.k].splice(+t.dataset.i, 1); render(); break;
+    case 'var-add': {
+      const k = t.dataset.k;
+      modal({ title: `Agregar a «${esc(k)}»`, okLabel: 'Agregar',
+        body: `<label class="field"><span>${k === 'Formato' ? 'Formato (ej. 1:1, 4:5, 9:16, 16:9)' : 'Valor'}</span><input class="input" name="v"></label>`,
+        onOk: (f) => { const v = (f.v || '').trim(); if (!v) return false; draft().vars[k].push(v); render(); } });
+      break;
+    }
+    case 'ref-pick': pickFile('#reffile', setRef); break;
+    case 'ref-del': { const dd = draft(); dd.refBlob = null; dd.refImageId = null; render(); break; }
+    case 'gen-prompts': generatePrompts(); break;
+    case 'ptab': draft().tab = t.dataset.v; render(); break;
+    case 'copy-prompt': {
+      const txt = ($('#ptext') || {}).innerText || '';
+      try { await navigator.clipboard.writeText(txt); toast('Prompt copiado'); } catch (err) { toast('No se pudo copiar'); }
+      break;
+    }
+    case 'to-compare': S.activePrompt = 0; S.pasteTarget = null; go('comparar'); break;
+    case 'new-draft': S.draft = newDraft(); S.error = null; render(); break;
+    /* Matriz */
+    case 'mopen': { const p = d.prompts[+t.dataset.i]; p.selected = true; await saveSession(); S.activePrompt = selectedCompareIndex(p.id); go('comparar'); break; }
+    case 'mcopy': {
+      const txt = d.prompts.filter((p) => p.selected).map((p) => `${p.n}. ${p.base}`).join('\n\n');
+      try { await navigator.clipboard.writeText(txt); toast('Prompts copiados'); } catch (err) { toast('No se pudo copiar'); }
+      break;
+    }
+    case 'mcompare': S.activePrompt = 0; go('comparar'); break;
+    /* Comparar */
+    case 'pprev': S.activePrompt = (S.activePrompt - 1 + comparePrompts().length) % comparePrompts().length; S.pasteTarget = null; render(); break;
+    case 'pnext': S.activePrompt = (S.activePrompt + 1) % comparePrompts().length; S.pasteTarget = null; render(); break;
+    case 'bridge': openBridge(t.dataset.p, t.dataset.m); break;
+    case 'paste-here': {
+      const pid = t.dataset.p, m = t.dataset.m;
+      S.pasteTarget = { promptId: pid, model: m };
+      pickFile('#anyfile', (f) => saveResult(f, pid, m));
+      break;
+    }
+    case 'clip-paste': case 'clip-ref': {
+      const blob = await readClipboardImage();
+      if (!blob) break;
+      if (a === 'clip-ref') setRef(blob); else saveResult(blob, t.dataset.p, t.dataset.m);
+      break;
+    }
+    case 'nav-open': document.querySelector('.app').classList.add('nav-open'); break;
+    case 'nav-close': closeNav(); break;
+    case 'replace': { const p = t.dataset.p, m = t.dataset.m; pickFile('#anyfile', (f) => saveResult(f, p, m)); break; }
+    case 'gen-direct': genDirect(t.dataset.p); break;
+    case 'mark': {
+      const img = S.images.find((i) => i.id === t.dataset.id);
+      await updateImage(t.dataset.id, { mark: img.mark === t.dataset.v ? null : t.dataset.v }); render(); break;
+    }
+    case 'recipe': recipeModal(t.dataset.id); break;
+    case 'dl': downloadImage(S.images.find((i) => i.id === t.dataset.id)); break;
+    case 'edit-img': S.editImageId = t.dataset.id; S.edit.previewId = t.dataset.id; S.error = null; go('edicion'); break;
+    /* Biblioteca */
+    case 'libtab': S.libTab = t.dataset.v; render(); break;
+    case 'libdl': {
+      const ids = [...S.libSel];
+      for (const [n, id] of ids.entries()) { const img = S.images.find((i) => i.id === id); if (img) setTimeout(() => downloadImage(img), n * 350); }
+      break;
+    }
+    case 'libdel': {
+      const ids = [...S.libSel];
+      modal({ title: 'Eliminar imágenes', okLabel: `Eliminar ${ids.length}`, body: `<p style="margin:0">Se eliminarán ${ids.length} ${ids.length === 1 ? 'imagen' : 'imágenes'} de la biblioteca. Esto no se puede deshacer.</p>`,
+        onOk: async () => { for (const id of ids) await DB.del('images', id); S.libSel.clear(); await reloadData(); render(); toast('Imágenes eliminadas'); } });
+      break;
+    }
+    case 'as-ref': {
+      const img = S.images.find((i) => i.id === t.dataset.id);
+      S.draft = newDraft(); setRef(img.blob); go('crear'); break;
+    }
+    case 'recipe-use': {
+      const r = S.recipes.find((x) => x.id === t.dataset.id);
+      r.uses = (r.uses || 0) + 1; await DB.put('recipes', r);
+      S.draft = newDraft(); S.draft.template = 'receta:' + r.id; S.draft.format = r.format || S.draft.format;
+      await reloadData(); go('crear'); break;
+    }
+    case 'recipe-del': await DB.del('recipes', t.dataset.id); await reloadData(); render(); toast('Receta eliminada'); break;
+    case 'session-open': openSession(t.dataset.id); break;
+    /* Edición */
+    case 'edit-close': S.editImageId = null; S.edit.previewId = null; render(); break;
+    case 'edit-upload': pickFile('#editfile', async (f) => {
+      if (!f.type.startsWith('image/')) { toast('Eso no es una imagen'); return; }
+      const img = { id: uid(), blob: f, kind: 'result', model: 'Edición', editLabel: 'Original', created: Date.now(), clientId: S.ctx.clientId, campaignId: S.ctx.campaignId, format: '', source: 'upload', mark: null, note: '' };
+      await DB.put('images', img); await reloadData(); S.editImageId = img.id; S.edit.previewId = img.id; render();
+    }); break;
+    case 'eset': { const v = t.dataset.v; S.edit[t.dataset.k] = t.dataset.k === 'scale' ? +v : v; render(); break; }
+    case 'eprev': S.edit.previewId = t.dataset.id; render(); break;
+    case 'do-bg': runEdit('bg'); break;
+    case 'do-ext': runEdit('ext'); break;
+    case 'do-up': runEdit('up'); break;
+    /* Ajustes */
+    case 'key-save': S.settings.apiKey = ($('#apikey').value || '').trim(); saveSettings(); render(); toast('Clave guardada en este navegador'); break;
+    case 'key-test': S.settings.apiKey = ($('#apikey').value || '').trim(); saveSettings(); testKey(); break;
+    case 'direct': S.settings.imagesDirect = !S.settings.imagesDirect; saveSettings(); render(); break;
+    case 'bridge-on': { const b = S.settings.bridges[t.dataset.m]; b.on = !b.on; if (!enabledModels().length) { b.on = true; toast('Deja al menos una IA activa'); } saveSettings(); render(); break; }
+    case 'backup': backup(); break;
+    case 'restore': pickFile('#restorefile', restore); break;
+    case 'wipe': modal({ title: 'Borrar todo', okLabel: 'Borrar todo', body: '<p style="margin:0">Se borrarán clientes, campañas, imágenes, recetas e historial de este navegador. Tu clave y tus ajustes se mantienen. Te recomendamos descargar un respaldo antes.</p>',
+      onOk: async () => { for (const st of ['clients', 'campaigns', 'sessions', 'images', 'recipes']) await DB.clear(st); S.draft = null; S.ctx = { clientId: null, campaignId: null }; await reloadData(); render(); toast('Datos borrados'); } }); break;
+    default: break;
+  }
+});
+
+document.addEventListener('change', async (e) => {
+  const t = e.target;
+  if (t.dataset.act === 'msel') { S.draft.prompts[+t.dataset.i].selected = t.checked; await saveSession(); render(); }
+  else if (t.dataset.act === 'mall') { S.draft.prompts.forEach((p) => { p.selected = t.checked; }); await saveSession(); render(); }
+  else if (t.dataset.act === 'libsel') { if (t.checked) S.libSel.add(t.dataset.id); else S.libSel.delete(t.dataset.id); render(); }
+  else if (t.dataset.act === 'eshadow') { S.edit.shadow = t.checked; }
+  else if (t.dataset.filter) { S.libFilter[t.dataset.filter] = t.value; render(); }
+  else if (t.dataset.note) { await updateImage(t.dataset.note, { note: t.value }); toast('Nota guardada'); }
+  else if (t.dataset.set) { S.settings[t.dataset.set] = t.value; saveSettings(); toast('Guardado'); }
+  else if (t.dataset.bridgeUrl) { S.settings.bridges[t.dataset.bridgeUrl].url = t.value.trim(); saveSettings(); toast('Link guardado'); }
+});
+
+/* Pegar imágenes con Ctrl+V */
+document.addEventListener('paste', (e) => {
+  const item = [...(e.clipboardData ? e.clipboardData.items : [])].find((i) => i.type.startsWith('image/'));
+  if (!item) {
+    if (S.view === 'comparar' && S.pasteTarget && !e.target.closest('input,textarea,[contenteditable="true"]')) toast('Lo que pegaste no es una imagen. Copia la imagen (clic derecho → Copiar imagen) y vuelve a pegar.', 4000);
+    return;
+  }
+  const blob = item.getAsFile();
+  if (S.view === 'crear') { e.preventDefault(); setRef(blob); }
+  else if (S.view === 'comparar') {
+    e.preventDefault();
+    let tgt = S.pasteTarget;
+    if (!tgt) {
+      const p = comparePrompts()[S.activePrompt];
+      const free = p ? enabledModels().filter((m) => !resultFor(p.id, m) && !(m === 'Gemini' && S.settings.imagesDirect)) : [];
+      if (free.length === 1) tgt = { promptId: p.id, model: free[0] };
+    }
+    if (tgt) saveResult(blob, tgt.promptId, tgt.model);
+    else toast('Primero haz clic en «Trae el resultado» de la tarjeta donde va la imagen', 4000);
+  }
+});
+
+/* Arrastrar imágenes a las tarjetas de comparar */
+document.addEventListener('dragover', (e) => { e.preventDefault(); });
+document.addEventListener('drop', (e) => {
+  e.preventDefault();
+  const c = e.target.closest('[data-dropcard]');
+  if (!c) return;
+  const f = [...e.dataTransfer.files].find((x) => x.type.startsWith('image/'));
+  if (f) saveResult(f, c.dataset.p, c.dataset.m); else toast('Eso no es una imagen');
+});
+
+document.addEventListener('keydown', (e) => {
+  if (S.view === 'crear' && e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); generatePrompts(); }
+});
+
+/* ============ Inicio ============ */
+(async function init() {
+  try {
+    await DB.open();
+    await reloadData();
+  } catch (e) {
+    document.body.innerHTML = '<p style="padding:40px;font-family:sans-serif">No se pudo abrir el almacenamiento del navegador. Abre Whoops AI! con Chrome o Edge (no en modo incógnito).</p>';
+    return;
+  }
+  if (!S.settings.apiKey) S.view = 'crear';
+  render();
+})();
+
+</script>
+</body>
+</html>
