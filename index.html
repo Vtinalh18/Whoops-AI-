@@ -189,6 +189,8 @@ kbd{font-family:inherit;font-size:12px;padding:2px 8px;border-radius:6px;border:
 .mapcard{background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 2px 8px rgba(16,16,20,.06);padding:14px;display:flex;flex-direction:column;gap:9px;text-align:left;font:inherit;color:inherit;overflow:hidden;box-sizing:border-box}
 button.mapcard{cursor:pointer}
 button.mapcard:hover{border-color:var(--lav)}
+.seg button{display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.thumb.sm{width:84px;height:84px;flex:0 0 84px}
 
 </style>
 </head>
@@ -621,11 +623,14 @@ const DEFAULT_VARS = { 'Ángulo': ['Beneficio', 'Urgencia', 'Social proof'], 'Fo
 function newDraft() {
   return {
     id: uid(), created: Date.now(), clientId: S.ctx.clientId, campaignId: S.ctx.campaignId,
-    refBlob: null, refName: '', idea: '', template: TEMPLATES[0], format: S.settings.defaultFormat,
+    refs: [], idea: '', writer: S.settings.promptWriter || 'Gemini', template: TEMPLATES[0], format: S.settings.defaultFormat,
     matrixOn: false, vars: structuredClone(DEFAULT_VARS), analysis: [], prompts: [], tab: 'Gemini',
   };
 }
-function draft() { if (!S.draft) S.draft = newDraft(); return S.draft; }
+function draft() { if (!S.draft) S.draft = newDraft(); const d = S.draft; if (!d.refs) d.refs = []; if (!d.writer) d.writer = S.settings.promptWriter || 'Gemini'; return d; }
+const MAX_REFS = 6;
+const WRITERS = ['Gemini', 'Claude', 'ChatGPT'];
+function writerURL(w) { return w === 'Claude' ? (S.settings.claudeUrl || 'https://claude.ai/new') : (S.settings.bridges[w] && S.settings.bridges[w].url) || (w === 'ChatGPT' ? 'https://chatgpt.com/' : 'https://gemini.google.com/app'); }
 function combos(vars) {
   const keys = Object.keys(vars).filter((k) => vars[k].length);
   let out = [{}];
@@ -665,26 +670,32 @@ function viewCrear() {
       </div>
       <span class="small">${Object.values(d.vars).map((v) => v.length).filter(Boolean).join(' × ')} = <strong>${nCombos} prompts</strong>${nCombos > 24 ? ' <span style="color:var(--red)">(máximo 24, quita algunas variables)</span>' : ''}</span>` : ''}
     </div>`;
-  const ref = d.refBlob
-    ? `<div style="position:relative"><img class="thumb" src="${d.refURL}" alt="Referencia cargada"><button type="button" class="iconbtn" style="position:absolute;top:-10px;right:-10px;width:30px;height:30px" aria-label="Quitar referencia" data-act="ref-del">${IC(I.x, 14)}</button></div>`
-    : '';
+  const full = d.refs.length >= MAX_REFS;
+  const refThumbs = d.refs.map((r, i) => `<div style="position:relative;flex:0 0 auto"><img class="thumb sm" src="${r.url}" alt="Referencia ${i + 1}"><button type="button" class="iconbtn" style="position:absolute;top:-8px;right:-8px;width:28px;height:28px" aria-label="Quitar referencia ${i + 1}" data-act="cref-rm" data-i="${i}">${IC(I.x, 13)}</button></div>`).join('');
+  const writerBtns = WRITERS.map((w) => `<button type="button" aria-pressed="${d.writer === w}" data-act="writer" data-v="${w}" style="${d.writer === w ? '' : `color:${BRAND[w].fg}`}">${logoMark(w, 13)}${w}</button>`).join('');
+  const writerNote = d.writer === 'Gemini'
+    ? (S.settings.apiKey ? 'Automático con tu clave gratuita de Gemini.' : 'Necesita tu clave gratuita de Gemini (Ajustes).')
+    : `Se copia el pedido, se abre ${d.writer} y pegas su respuesta aquí. Usa tu cuenta de ${d.writer}.`;
   const left = `<section class="card" aria-labelledby="h-entrada">
     <h2 id="h-entrada">1. Punto de partida</h2>
-    <div class="field"><span>Imagen de referencia <span class="muted" style="font-weight:400">(opcional)</span></span>
-      <div class="row" style="flex-wrap:nowrap;align-items:stretch">${ref}
-        <button type="button" class="drop" id="refdrop" data-act="ref-pick" style="flex:1">${IC(I.upload, 20)}Arrastra una imagen, toca para elegirla o pega con Ctrl+V</button>
-        <input type="file" id="reffile" accept="image/*" hidden></div>
-      <button type="button" class="btn sm" data-act="clip-ref" style="align-self:flex-start">${IC(I.copy, 14)}Pegar imagen copiada</button></div>
+    <div class="field"><span>Imágenes de referencia <span class="muted" style="font-weight:400">(opcional · hasta ${MAX_REFS})</span></span>
+      ${d.refs.length ? `<div class="row" style="gap:12px;padding-top:8px">${refThumbs}</div>` : ''}
+      ${full ? `<span class="small muted">Llegaste al máximo de ${MAX_REFS} referencias.</span>` : `<button type="button" class="drop" id="refdrop" data-act="ref-pick" style="min-height:${d.refs.length ? 64 : 110}px">${IC(I.upload, 20)}${d.refs.length ? 'Agrega otra: arrastra, toca o pega con Ctrl+V' : 'Arrastra una o varias imágenes, toca para elegirlas o pega con Ctrl+V'}</button>`}
+      <input type="file" id="reffile" accept="image/*" multiple hidden>
+      ${full ? '' : `<button type="button" class="btn sm" data-act="clip-ref" style="align-self:flex-start">${IC(I.copy, 14)}Pegar imagen copiada</button>`}</div>
     <label class="field"><span>Tu idea</span><textarea class="input" id="idea" rows="3" placeholder="Ej: sérum sobre una roca junto al mar, golden hour, vibe summer glow, clean y premium">${esc(d.idea)}</textarea></label>
     <div class="grid2" style="gap:12px">
       <label class="field"><span>Plantilla</span><select class="input" id="tpl">${tplOpts}</select></label>
       <div class="field"><span>Formato</span><div class="seg" role="group" aria-label="Formato">${fmtBtns}</div></div>
     </div>
     ${matrix}
-    <button type="button" class="btn primary block" data-act="gen-prompts" ${S.busy ? 'disabled' : ''} style="min-height:48px;font-size:15px">${S.busy ? '<span class="spin"></span> Generando prompts…' : 'Generar prompts'}</button>
+    <div class="field"><span>IA que escribe los prompts</span>
+      <div class="seg" role="group" aria-label="IA que escribe los prompts">${writerBtns}</div>
+      <span class="small muted">${writerNote}</span></div>
+    <button type="button" class="btn primary block" data-act="gen-prompts" ${S.busy ? 'disabled' : ''} style="min-height:48px;font-size:15px">${S.busy ? '<span class="spin"></span> Generando prompts…' : d.writer === 'Gemini' ? 'Generar prompts' : `Generar prompts con ${d.writer}`}</button>
   </section>`;
   return topBar('Crear', `<button class="btn sm" data-act="new-draft">${IC(I.plus, 14)}Nueva creación</button>`) +
-    (S.settings.apiKey ? '' : `<div class="alert info"><b>Conecta Gemini para empezar.</b> Necesitas una clave gratuita de Google AI Studio para analizar referencias y escribir prompts. <button class="btn sm primary" data-go="ajustes">Ir a Ajustes</button></div>`) +
+    (S.settings.apiKey || d.writer !== 'Gemini' ? '' : `<div class="alert info"><b>Conecta Gemini para empezar.</b> Necesitas una clave gratuita de Google AI Studio para analizar referencias y escribir prompts, o elige Claude o ChatGPT abajo. <button class="btn sm primary" data-go="ajustes">Ir a Ajustes</button></div>`) +
     (S.error ? `<div class="alert err" role="alert">${esc(S.error)}</div>` : '') +
     `<div class="grid2">${left}${promptPanel()}</div>`;
 }
@@ -692,9 +703,10 @@ function viewCrear() {
 function promptPanel() {
   const d = draft();
   const p = d.prompts[0];
+  if (d.bridgeAsk) return bridgePanel();
   if (!p) {
     return `<section class="card" aria-labelledby="h-prompt"><h2 id="h-prompt">2. Prompt</h2>
-      <div class="empty">${IC(I.crear, 28)}<span>Escribe tu idea o sube una referencia y presiona <b>Generar prompts</b>.<br>Gemini lo escribe en ${esc(S.settings.promptLang === 'English' ? 'inglés' : 'español')} y lo adapta a cada IA.</span></div></section>`;
+      <div class="empty">${IC(I.crear, 28)}<span>Escribe tu idea o sube referencias y presiona <b>Generar prompts</b>.<br>${esc(d.writer)} lo escribe en ${esc(S.settings.promptLang === 'English' ? 'inglés' : 'español')} y lo adapta a cada IA.</span></div></section>`;
   }
   if (d.prompts.length > 1) {
     return `<section class="card" aria-labelledby="h-prompt"><h2 id="h-prompt">2. Prompts</h2>
@@ -719,6 +731,21 @@ function promptPanel() {
         <button class="btn" data-act="to-compare">Comparar en varios modelos</button></div></div>
   </section>`;
 }
+function bridgePanel() {
+  const d = draft(), w = d.bridgeAsk.writer;
+  const nr = d.refs.length;
+  return `<section class="card" aria-labelledby="h-prompt"><h2 id="h-prompt">2. Prompt con ${logoMark(w, 16)} <span style="color:${BRAND[w].fg}">${esc(w)}</span></h2>
+    <ol class="steps" style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:14px;font-size:14px">
+      <li><b>Pega el pedido en ${esc(w)}.</b> Ya está copiado y ${esc(w)} se abrió en otra pestaña.
+        <div class="row" style="margin-top:8px"><button class="btn sm" data-act="bridge-copy">${IC(I.copy, 14)}Copiar pedido otra vez</button><button class="btn sm" data-act="bridge-open">Abrir ${esc(w)}</button></div></li>
+      ${nr ? `<li><b>Adjunta ${nr === 1 ? 'tu referencia' : `tus ${nr} referencias`}</b> en el mismo mensaje. Copia cada una y pégala en ${esc(w)}, o descárgalas y arrástralas.
+        <div class="row" style="margin-top:8px;gap:10px">${d.refs.map((r, i) => `<div style="display:flex;flex-direction:column;gap:6px;align-items:center"><img class="thumb sm" src="${r.url}" alt="Referencia ${i + 1}"><button class="btn sm" data-act="bridge-refcopy" data-i="${i}">Copiar ${i + 1}</button></div>`).join('')}</div>
+        <button class="btn sm ghost" data-act="bridge-refdl" style="margin-top:6px">${IC(I.dl, 14)}Descargar todas</button></li>` : ''}
+      <li><b>Copia la respuesta completa de ${esc(w)}</b> y pégala aquí.
+        <textarea class="input" id="bridge-out" rows="5" placeholder="Pega aquí la respuesta completa" style="margin-top:8px;font-family:ui-monospace,monospace;font-size:12px"></textarea>
+        <div class="row" style="margin-top:8px"><button class="btn primary" data-act="bridge-read">Leer respuesta</button><button class="btn sm ghost" data-act="bridge-cancel">Cancelar</button></div></li>
+    </ol></section>`;
+}
 function analysisChips() {
   const a = draft().analysis || [];
   if (!a.length) return '';
@@ -729,11 +756,10 @@ function afterCrear() {
   const idea = $('#idea'), tpl = $('#tpl'), drop = $('#refdrop'), file = $('#reffile'), pt = $('#ptext');
   if (idea) idea.addEventListener('input', () => { draft().idea = idea.value; });
   if (tpl) tpl.addEventListener('change', () => { draft().template = tpl.value; });
-  if (file) file.addEventListener('change', () => { if (file.files[0]) setRef(file.files[0]); });
   if (drop) {
     drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('over'); });
     drop.addEventListener('dragleave', () => drop.classList.remove('over'));
-    drop.addEventListener('drop', (e) => { e.preventDefault(); const f = [...e.dataTransfer.files].find((x) => x.type.startsWith('image/')); if (f) setRef(f); else toast('Eso no es una imagen'); });
+    drop.addEventListener('drop', (e) => { e.preventDefault(); const fs = [...e.dataTransfer.files].filter((x) => x.type.startsWith('image/')); if (fs.length) addRefs(fs); else toast('Eso no es una imagen'); });
   }
   if (pt) pt.addEventListener('input', () => {
     const d = draft(), p = d.prompts[0];
@@ -742,23 +768,33 @@ function afterCrear() {
     saveSession();
   });
 }
-function setRef(blob) {
+function addRefs(blobs, opts = {}) {
   const d = draft();
-  if (d.refURL) URL.revokeObjectURL(d.refURL);
-  d.refBlob = blob; d.refURL = URL.createObjectURL(blob); d.refName = blob.name || 'captura';
-  render();
+  let added = 0;
+  for (const blob of blobs) {
+    if (!blob) continue;
+    if (d.refs.length >= MAX_REFS) { toast(`Máximo ${MAX_REFS} referencias`); break; }
+    d.refs.push({ blob, url: URL.createObjectURL(blob), name: blob.name || 'captura', imageId: opts.imageId || null });
+    added++;
+  }
+  if (added && d.prompts.length) toast('Referencia agregada. Vuelve a generar los prompts para usarla.');
+  if (S.view === 'crear') render();
 }
+function setRef(blob) { addRefs([blob]); }
 
 async function saveSession() {
   const d = draft();
-  const { refURL, tab, refBlob, ...rest } = d;
+  const { refURL, tab, refBlob, refs, bridgeAsk, ...rest } = d;
+  rest.refImageIds = (refs || []).map((r) => r.imageId).filter(Boolean);
   await DB.put('sessions', { ...rest });
 }
 
 async function generatePrompts() {
   const d = draft();
   const ideaEl = $('#idea'); if (ideaEl) d.idea = ideaEl.value;
-  if (!d.idea.trim() && !d.refBlob) { toast('Escribe una idea o sube una referencia'); return; }
+  if (!d.idea.trim() && !d.refs.length) { toast('Escribe una idea o sube una referencia'); return; }
+  const nr = d.refs.length;
+  const refWord = nr === 1 ? 'la imagen de referencia adjunta' : `las ${nr} imágenes de referencia adjuntas`;
   d.clientId = S.ctx.clientId; d.campaignId = S.ctx.campaignId;
   let list = d.matrixOn ? combos(d.vars) : [{}];
   if (d.matrixOn && !list.length) { toast('Agrega al menos una variable a la matriz'); return; }
@@ -772,7 +808,7 @@ async function generatePrompts() {
   const lang = S.settings.promptLang === 'English' ? 'English' : 'Spanish';
   const models = enabledModels();
   const instr = `Eres un director de arte experto en paid ads y en escribir prompts para IAs de imagen.
-Tarea: a partir de la idea${d.refBlob ? ' y la imagen de referencia adjunta' : ''}, escribe prompts de imagen listos para usar.
+Tarea: a partir de la idea${nr ? ' y ' + refWord : ''}, escribe prompts de imagen listos para usar.
 Idea de la diseñadora (puede venir en español o spanglish): «${d.idea || '(sin texto, guíate por la referencia)'}».
 Plantilla: ${template}. ${recipeTxt}
 ${cli ? `Cliente: ${cli.name} (${cli.industry || ''}). Notas del cliente: ${cli.notes || 'ninguna'}.` : ''}${camp ? ` Campaña: ${camp.name}.` : ''}
@@ -782,16 +818,61 @@ Escribe todos los prompts en ${lang}. Para cada prompt da una versión base y un
 Cómo adaptar: Gemini → frases descriptivas naturales, incluye el formato. ChatGPT → muy detallado y conversacional; si hay texto dentro de la imagen, ponlo entre comillas exactas. Higgsfield → lenguaje fotográfico/cinematográfico (cámara, lente, luz, movimiento), conciso. Pomelli → estilo brief de marketing: producto, mensaje de campaña, formato y uso en redes. Firefly → descripción concisa con tipo de contenido (foto), composición y estilo; sin nombres de artistas. Freepik → descriptivo y visual, con estilo fotográfico, iluminación, encuadre y paleta en frases cortas separadas por comas.
 Para cada prompt sugiere qué IA usar entre (${models.join(', ')}) y explica por qué en una frase corta en español. Usa este historial de resultados de la diseñadora para decidir:
 ${modelStats(template)}
-${d.refBlob ? 'También describe la referencia en hasta 6 etiquetas cortas en español (luz, composición, paleta, lente, mood, etc.).' : ''}
+${nr > 1 ? `Combina lo mejor de las ${nr} referencias (por ejemplo la luz de una y la composición de otra) en un estilo coherente.\n` : ''}${nr ? `También describe ${nr === 1 ? 'la referencia' : 'las referencias'} en hasta 6 etiquetas cortas en español (luz, composición, paleta, lente, mood, etc.).` : ''}
 Responde solo JSON con esta forma:
 {"analysis":["..."],"prompts":[{"base":"...","versions":{${models.map((m) => `"${m}":"..."`).join(',')}},"suggested":"${models[0] || 'Gemini'}","reason":"..."}]}`;
+  const ctx = { list, models, template };
+  if (d.writer !== 'Gemini') {
+    const ask = instr + `\n\nDevuelve únicamente ese JSON dentro de un bloque de código, sin texto antes ni después.`;
+    d.bridgeAsk = { writer: d.writer, text: ask, ctx }; S.error = null;
+    try { await navigator.clipboard.writeText(ask); toast(`Pedido copiado. Pégalo en ${d.writer}${nr ? ' junto con tus referencias' : ''}.`, 4500); } catch (err) { toast('No se pudo copiar; usa «Copiar pedido otra vez».'); }
+    window.open(writerURL(d.writer), '_blank', 'noopener');
+    render(); return;
+  }
   const parts = [{ text: instr }];
-  if (d.refBlob) parts.push({ inlineData: { mimeType: d.refBlob.type || 'image/png', data: await blobToBase64(d.refBlob) } });
+  for (const r of d.refs) parts.push({ inlineData: { mimeType: r.blob.type || 'image/png', data: await blobToBase64(r.blob) } });
   S.busy = true; S.error = null; render();
   try {
     const out = await geminiJSON(parts);
+    await applyPromptOutput(out, ctx, 'Gemini');
+  } catch (e) {
+    S.error = e.message || 'Algo salió mal al generar los prompts.';
+  } finally {
+    S.busy = false; render();
+  }
+}
+
+function parseLooseJSON(txt) {
+  let t = String(txt || '').trim();
+  const fence = t.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fence) t = fence[1].trim();
+  const a = t.indexOf('{'), b = t.lastIndexOf('}');
+  if (a < 0 || b <= a) return null;
+  t = t.slice(a, b + 1).replace(/[\u201C\u201D]/g, '"');
+  try { return JSON.parse(t); } catch (e) {
+    try { return JSON.parse(t.replace(/,\s*([}\]])/g, '$1')); } catch (e2) { return null; }
+  }
+}
+
+async function readBridgeAnswer() {
+  const d = draft(), b = d.bridgeAsk;
+  if (!b) return;
+  const out = parseLooseJSON(($('#bridge-out') || {}).value);
+  if (!out || !Array.isArray(out.prompts)) { toast(`No pude leer la respuesta. Copia todo el bloque que ${b.writer} devolvió (empieza con { y termina con }).`, 5000); return; }
+  try {
+    await applyPromptOutput(out, b.ctx, b.writer);
+    d.bridgeAsk = null; S.error = null;
+    toast(`Prompts de ${b.writer} cargados`);
+  } catch (e) { S.error = e.message; }
+  render();
+}
+
+async function applyPromptOutput(out, ctx, writer) {
+  const d = draft();
+  const { list, models, template } = ctx;
+  {
     const ps = Array.isArray(out.prompts) ? out.prompts : [];
-    if (!ps.length) throw new GeminiError('parse', 'Gemini no devolvió prompts. Intenta de nuevo.');
+    if (!ps.length) throw new GeminiError('parse', `${writer} no devolvió prompts. Intenta de nuevo.`);
     d.analysis = Array.isArray(out.analysis) ? out.analysis.slice(0, 6) : [];
     d.prompts = ps.slice(0, list.length).map((p, i) => ({
       id: uid(), n: i + 1, vars: list[i] || {}, base: String(p.base || ''),
@@ -800,20 +881,39 @@ Responde solo JSON con esta forma:
       format: (list[i] && list[i].Formato) || d.format, selected: i < 8,
     }));
     d.tab = d.prompts[0].suggested || 'Base';
-    d.templateName = template;
-    if (d.refBlob && !d.refImageId) {
-      const refImg = { id: uid(), blob: d.refBlob, kind: 'ref', model: 'Referencia', created: Date.now(), sessionId: d.id, campaignId: d.campaignId, clientId: d.clientId };
-      await DB.put('images', refImg); d.refImageId = refImg.id;
+    d.templateName = template; d.writtenBy = writer;
+    for (const r of d.refs) {
+      if (r.imageId) continue;
+      const refImg = { id: uid(), blob: r.blob, kind: 'ref', model: 'Referencia', created: Date.now(), sessionId: d.id, campaignId: d.campaignId, clientId: d.clientId };
+      await DB.put('images', refImg); r.imageId = refImg.id;
     }
     await saveSession(); await reloadData();
     S.activePrompt = 0;
     if (d.prompts.length > 1) S.view = 'matriz';
-  } catch (e) {
-    S.error = e.message || 'Algo salió mal al generar los prompts.';
-  } finally {
-    S.busy = false; render();
   }
 }
+
+async function blobToPNG(blob) {
+  if (blob.type === 'image/png') return blob;
+  const bmp = await createImageBitmap(blob);
+  const c = document.createElement('canvas'); c.width = bmp.width; c.height = bmp.height;
+  c.getContext('2d').drawImage(bmp, 0, 0);
+  return await new Promise((res) => c.toBlob(res, 'image/png'));
+}
+ACTIONS['writer'] = (t) => { const d = draft(); d.writer = t.dataset.v; d.bridgeAsk = null; S.settings.promptWriter = d.writer; saveSettings(); render(); };
+ACTIONS['cref-rm'] = (t) => { const d = draft(); const [r] = d.refs.splice(+t.dataset.i, 1); if (r) URL.revokeObjectURL(r.url); render(); };
+ACTIONS['bridge-copy'] = async () => { try { await navigator.clipboard.writeText(draft().bridgeAsk.text); toast('Pedido copiado'); } catch (e) { toast('No se pudo copiar'); } };
+ACTIONS['bridge-open'] = () => window.open(writerURL(draft().bridgeAsk.writer), '_blank', 'noopener');
+ACTIONS['bridge-refcopy'] = async (t) => {
+  const r = draft().refs[+t.dataset.i];
+  try { const png = await blobToPNG(r.blob); await navigator.clipboard.write([new ClipboardItem({ 'image/png': png })]); toast(`Referencia ${+t.dataset.i + 1} copiada. Pégala en ${draft().bridgeAsk.writer}.`); }
+  catch (e) { toast('Tu navegador no deja copiar imágenes. Usa «Descargar todas» y arrástralas.', 4500); }
+};
+ACTIONS['bridge-refdl'] = () => draft().refs.forEach((r, i) => setTimeout(() => {
+  const a = document.createElement('a'); a.href = r.url; a.download = `referencia-${i + 1}.${(r.blob.type.split('/')[1] || 'png').replace('jpeg', 'jpg')}`; a.click();
+}, i * 350));
+ACTIONS['bridge-read'] = () => readBridgeAnswer();
+ACTIONS['bridge-cancel'] = () => { draft().bridgeAsk = null; render(); };
 
 /* ============ Matriz ============ */
 function viewMatriz() {
@@ -1038,9 +1138,10 @@ async function openSession(id) {
   const s = S.sessions.find((x) => x.id === id);
   if (!s) return;
   const d = { ...structuredClone(s), tab: (s.prompts[0] && s.prompts[0].suggested) || 'Base' };
-  if (s.refImageId) {
-    const ref = S.images.find((i) => i.id === s.refImageId);
-    if (ref) { d.refBlob = ref.blob; d.refURL = URL.createObjectURL(ref.blob); }
+  d.refs = [];
+  for (const id of (s.refImageIds || (s.refImageId ? [s.refImageId] : []))) {
+    const ref = S.images.find((i) => i.id === id);
+    if (ref) d.refs.push({ blob: ref.blob, url: URL.createObjectURL(ref.blob), name: 'referencia', imageId: ref.id });
   }
   S.draft = d; S.ctx = { clientId: s.clientId || null, campaignId: s.campaignId || null }; S.activePrompt = 0;
   go(s.prompts.length > 1 ? 'matriz' : 'comparar');
@@ -1345,8 +1446,7 @@ document.addEventListener('click', async (e) => {
         onOk: (f) => { const v = (f.v || '').trim(); if (!v) return false; draft().vars[k].push(v); render(); } });
       break;
     }
-    case 'ref-pick': pickFile('#reffile', setRef); break;
-    case 'ref-del': { const dd = draft(); dd.refBlob = null; dd.refImageId = null; render(); break; }
+    case 'ref-pick': { const el = $('#reffile'); if (el) { el.onchange = () => { addRefs([...el.files]); el.value = ''; }; el.click(); } break; }
     case 'gen-prompts': generatePrompts(); break;
     case 'ptab': draft().tab = t.dataset.v; render(); break;
     case 'copy-prompt': {
@@ -1872,9 +1972,8 @@ ACTIONS['concept-down'] = () => {
   d.conceptId = c.id;
   d.idea = [F.visual, F.headline ? `Headline: «${F.headline}»` : '', F.message ? `Mensaje: ${F.message}` : '', F.palette && F.palette.length ? `Paleta: ${F.palette.join(', ')}` : ''].filter(Boolean).join('. ') || c.name;
   if (F.angle) { d.matrixOn = true; d.vars['Ángulo'] = [F.angle]; }
-  const r = S.refs.find((x) => (c.refIds || []).includes(x.id) && x.blob);
-  S.draft = d; go('crear');
-  if (r) setRef(r.blob);
+  const rs = S.refs.filter((x) => (c.refIds || []).includes(x.id) && x.blob).slice(0, MAX_REFS);
+  S.draft = d; addRefs(rs.map((x) => x.blob)); go('crear');
   toast('Concepto cargado en Crear. Ajusta la matriz y genera los prompts.');
 };
 
