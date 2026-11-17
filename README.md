@@ -1,6 +1,6 @@
 # Whoops AI!
 
-Hub personal para crear prompts e imágenes con varias IAs en un solo lugar: Gemini, ChatGPT, Higgsfield, Pomelli y Firefly.
+Hub personal para crear prompts e imágenes con varias IAs en un solo lugar: Gemini, ChatGPT, Higgsfield, Pomelli, Firefly y Freepik, más Claude para pulir prompts.
 
 **App:** https://vtinalh18.github.io/Whoops-AI-/
 
