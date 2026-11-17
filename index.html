@@ -178,6 +178,18 @@ kbd{font-family:inherit;font-size:12px;padding:2px 8px;border-radius:6px;border:
   .btn.sm{min-height:40px}
 }
 
+@media (max-width:820px){.capgrid{grid-template-columns:1fr!important}}
+.chat{display:flex;flex-direction:column;gap:12px;font-size:13px;line-height:1.5;overflow-y:auto}
+.msg{max-width:88%;padding:10px 12px;border-radius:14px;white-space:pre-wrap}
+.msg.u{align-self:flex-end;background:var(--lav-tint);color:var(--lav-ink);border-bottom-right-radius:4px}
+.msg.a{align-self:flex-start;background:var(--bg);color:var(--ink2);border-bottom-left-radius:4px}
+.frow{display:grid;grid-template-columns:150px minmax(0,1fr);gap:16px;padding:12px 0;border-top:1px solid var(--bg);align-items:start}
+.frow>span{font-size:13px;font-weight:600;color:var(--purple);padding-top:10px}
+@media (max-width:820px){.frow{grid-template-columns:1fr;gap:6px}.frow>span{padding-top:0}}
+.mapcard{background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 2px 8px rgba(16,16,20,.06);padding:14px;display:flex;flex-direction:column;gap:9px;text-align:left;font:inherit;color:inherit;overflow:hidden;box-sizing:border-box}
+button.mapcard{cursor:pointer}
+button.mapcard:hover{border-color:var(--lav)}
+
 </style>
 </head>
 <body>
@@ -273,10 +285,10 @@ const DB = {
   db: null,
   open() {
     return new Promise((res, rej) => {
-      const r = indexedDB.open('whoops-ai', 1);
+      const r = indexedDB.open('whoops-ai', 2);
       r.onupgradeneeded = () => {
         const d = r.result;
-        for (const name of ['clients', 'campaigns', 'sessions', 'images', 'recipes']) {
+        for (const name of ['clients', 'campaigns', 'sessions', 'images', 'recipes', 'refs', 'concepts', 'frameworks', 'brands', 'notes']) {
           if (!d.objectStoreNames.contains(name)) d.createObjectStore(name, { keyPath: 'id' });
         }
       };
@@ -300,11 +312,15 @@ const DB = {
   clear(store) { return DB.tx(store, 'readwrite', (s) => s.clear()); },
 };
 
+/* ============ Registros de acciones por vista ============ */
+const ACTIONS = {}, CHANGES = {}, AFTER = {};
+
 /* ============ Estado ============ */
 const S = {
   settings: loadSettings(),
   view: 'crear',
-  clients: [], campaigns: [], recipes: [], images: [], sessions: [],
+  clients: [], campaigns: [], recipes: [], images: [], sessions: [], refs: [], concepts: [], frameworks: [], brands: [], notes: [],
+  refId: null, conceptId: null, brandName: null, rf: { tab: 'all', source: 'all', angle: 'all', format: 'all', client: 'ctx' }, qa: [],
   ctx: { clientId: null, campaignId: null },
   draft: null,          // creación en curso
   activePrompt: 0,      // índice del prompt en comparar
@@ -320,8 +336,11 @@ function imgURL(img) {
   return urlCache.get(img.id);
 }
 async function reloadData() {
-  [S.clients, S.campaigns, S.recipes, S.images, S.sessions] = await Promise.all(
-    ['clients', 'campaigns', 'recipes', 'images', 'sessions'].map((s) => DB.all(s)));
+  [S.clients, S.campaigns, S.recipes, S.images, S.sessions, S.refs, S.concepts, S.frameworks, S.brands, S.notes] = await Promise.all(
+    ['clients', 'campaigns', 'recipes', 'images', 'sessions', 'refs', 'concepts', 'frameworks', 'brands', 'notes'].map((s) => DB.all(s)));
+  S.refs.sort((a, b) => b.created - a.created);
+  S.concepts.sort((a, b) => a.created - b.created);
+  S.notes.sort((a, b) => b.created - a.created);
   S.clients.sort((a, b) => a.name.localeCompare(b.name));
   S.images.sort((a, b) => b.created - a.created);
   S.sessions.sort((a, b) => b.created - a.created);
@@ -428,11 +447,19 @@ const I = {
 
 /* ============ Navegación ============ */
 const VIEWS = {
-  crear: { label: 'Crear', icon: I.crear },
-  matriz: { label: 'Matriz de variaciones', icon: I.crear, hidden: true },
-  comparar: { label: 'Generar y comparar', icon: I.comparar },
-  biblioteca: { label: 'Biblioteca', icon: I.biblioteca },
-  edicion: { label: 'Edición rápida', icon: I.edicion },
+  crear: { label: 'Crear', icon: I.crear, group: 'General' },
+  matriz: { label: 'Matriz de variaciones', icon: I.crear, hidden: true, parent: 'crear' },
+  comparar: { label: 'Generar y comparar', icon: I.comparar, group: 'General' },
+  biblioteca: { label: 'Biblioteca', icon: I.biblioteca, group: 'General' },
+  edicion: { label: 'Edición rápida', icon: I.edicion, group: 'General' },
+  mapa: { label: 'Mapa de campaña', icon: '<circle cx="5" cy="12" r="2"/><circle cx="19" cy="6" r="2"/><circle cx="19" cy="18" r="2"/><path d="M7 12h4M11 12V6h6M11 12v6h6"/>', group: 'Estrategia' },
+  research: { label: 'Research', icon: '<circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/><path d="M9 11h4M11 9v4"/>', group: 'Estrategia' },
+  referencia: { label: 'Análisis de referencia', hidden: true, parent: 'research' },
+  conceptos: { label: 'Conceptos', icon: '<path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.4 1 1.1 1 1.9V16h5v-.2c0-.8.4-1.5 1-1.9A6 6 0 0 0 12 3z"/>', group: 'Estrategia' },
+  concepto: { label: 'Ficha de concepto', hidden: true, parent: 'conceptos' },
+  frameworks: { label: 'Frameworks', icon: '<path d="M4 5a2 2 0 0 1 2-2h12v16H6a2 2 0 0 0-2 2z"/><path d="M4 19V5M8 7h6"/>', group: 'Aprender' },
+  competidores: { label: 'Competidores', icon: '<path d="M3 20h18"/><path d="M6 16v-5M11 16V7M16 16v-8M21 16v-3"/>', group: 'Aprender' },
+  pregunta: { label: 'Pregúntale a la IA', icon: '<path d="M5 18l-1 3 3-1h11a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v12"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5M12 15.5h0"/>', group: 'Aprender' },
   ajustes: { label: 'Ajustes', icon: I.ajustes, hidden: true },
 };
 function closeNav() { const a = document.querySelector('.app'); if (a) a.classList.remove('nav-open'); }
@@ -442,8 +469,9 @@ function go(view) {
   window.scrollTo(0, 0);
 }
 function renderSide() {
-  const nav = Object.entries(VIEWS).filter(([, v]) => !v.hidden).map(([k, v]) =>
-    `<button class="navitem ${S.view === k || (k === 'crear' && S.view === 'matriz') ? 'active' : ''}" data-go="${k}" ${S.view === k ? 'aria-current="page"' : ''}>${IC(v.icon)}${v.label}</button>`).join('');
+  const cur = (VIEWS[S.view] && VIEWS[S.view].parent) || S.view;
+  const navFor = (g) => Object.entries(VIEWS).filter(([, v]) => !v.hidden && v.group === g).map(([k, v]) =>
+    `<button class="navitem ${cur === k ? 'active' : ''}" data-go="${k}" ${cur === k ? 'aria-current="page"' : ''}>${IC(v.icon)}${v.label}</button>`).join('');
   const general = `<button class="client ${!S.ctx.clientId && !S.ctx.campaignId ? 'sel' : ''}" data-ctx-general>${IC(I.folder, 16)}General</button>`;
   const clients = S.clients.map((c) => {
     const camps = S.campaigns.filter((k) => k.clientId === c.id).sort((a, b) => a.created - b.created);
@@ -458,13 +486,9 @@ function renderSide() {
     : `${u.text} pedidos de texto hoy`;
   $('#side').innerHTML = `
     <div class="brand"><span class="logo" aria-hidden="true">W!</span><b>Whoops AI!</b></div>
-    <div class="navgroup"><span class="navlabel">General</span>${nav}</div>
-    <div class="navgroup"><span class="navlabel">Próximamente</span>
-      <span class="navsoon">Research<span class="badge">Parte 2</span></span>
-      <span class="navsoon">Conceptos<span class="badge">Parte 2</span></span>
-      <span class="navsoon">Mapa de campaña<span class="badge">Parte 2</span></span>
-      <span class="navsoon">Aprender<span class="badge">Parte 3</span></span>
-    </div>
+    <div class="navgroup"><span class="navlabel">General</span>${navFor('General')}</div>
+    <div class="navgroup"><span class="navlabel">Estrategia</span>${navFor('Estrategia')}</div>
+    <div class="navgroup"><span class="navlabel">Aprender</span>${navFor('Aprender')}</div>
     <div class="navgroup"><span class="navlabel">Clientes</span>${general}${clients}
       <button class="linkbtn" data-new-client>+ Nuevo cliente</button></div>
     <div class="navgroup"><span class="navlabel">Herramientas</span>
@@ -487,6 +511,7 @@ function modal({ title, body, okLabel = 'Guardar', onOk }) {
     <footer><button class="btn" data-close type="button">Cancelar</button><button class="btn primary" data-ok type="button">${okLabel}</button></footer></div>`;
   document.body.appendChild(wrap);
   const close = () => wrap.remove();
+  wrap.querySelector('form').addEventListener('submit', (e) => { e.preventDefault(); wrap.querySelector('[data-ok]').click(); });
   wrap.addEventListener('click', async (e) => {
     if (e.target === wrap || e.target.closest('[data-close]')) close();
     if (e.target.closest('[data-ok]')) {
@@ -539,9 +564,12 @@ function newCampaignModal(clientId) {
 function render() {
   renderSide();
   const main = $('#main');
-  const fn = { crear: viewCrear, matriz: viewMatriz, comparar: viewComparar, biblioteca: viewBiblioteca, edicion: viewEdicion, ajustes: viewAjustes }[S.view];
+  const fn = { crear: viewCrear, matriz: viewMatriz, comparar: viewComparar, biblioteca: viewBiblioteca, edicion: viewEdicion, ajustes: viewAjustes,
+    mapa: viewMapa, research: viewResearch, referencia: viewReferencia, conceptos: viewConceptos, concepto: viewConcepto,
+    frameworks: viewFrameworks, competidores: viewCompetidores, pregunta: viewPregunta }[S.view];
   main.innerHTML = fn();
   if (S.view === 'crear') afterCrear();
+  if (AFTER[S.view]) AFTER[S.view]();
 }
 document.addEventListener('click', (e) => {
   const t = e.target.closest('[data-go],[data-ctx-general],[data-ctx-client],[data-ctx-camp],[data-new-client],[data-new-camp]');
@@ -855,7 +883,7 @@ async function saveResult(blob, promptId, model, source = 'bridge') {
   const old = resultFor(promptId, model);
   if (old) await DB.del('images', old.id);
   await DB.put('images', {
-    id: uid(), blob, kind: 'result', model, promptId, sessionId: d.id, campaignId: d.campaignId, clientId: d.clientId,
+    id: uid(), blob, kind: 'result', model, promptId, sessionId: d.id, campaignId: d.campaignId, clientId: d.clientId, conceptId: d.conceptId || null,
     prompt: p ? (p.versions[model] || p.base) : '', format: p ? p.format : d.format, template: d.templateName || d.template,
     vars: p ? p.vars : {}, mark: null, note: '', created: Date.now(), source,
   });
@@ -1219,7 +1247,8 @@ async function testKey() {
 }
 async function backup() {
   const data = {};
-  for (const st of ['clients', 'campaigns', 'sessions', 'recipes']) data[st] = await DB.all(st);
+  for (const st of ['clients', 'campaigns', 'sessions', 'recipes', 'concepts', 'frameworks', 'brands', 'notes']) data[st] = await DB.all(st);
+  data.refs = await Promise.all((await DB.all('refs')).map(async (r) => ({ ...r, blob: undefined, b64: r.blob ? await blobToBase64(r.blob) : null, mime: r.blob ? r.blob.type : null })));
   const imgs = await DB.all('images');
   data.images = await Promise.all(imgs.map(async (i) => ({ ...i, blob: undefined, b64: await blobToBase64(i.blob), mime: i.blob.type })));
   data.settings = { ...S.settings, apiKey: '' };
@@ -1234,7 +1263,8 @@ async function restore(file) {
   try {
     const data = JSON.parse(await file.text());
     if (!data.version) throw new Error('formato');
-    for (const st of ['clients', 'campaigns', 'sessions', 'recipes']) for (const o of data[st] || []) await DB.put(st, o);
+    for (const st of ['clients', 'campaigns', 'sessions', 'recipes', 'concepts', 'frameworks', 'brands', 'notes']) for (const o of data[st] || []) await DB.put(st, o);
+    for (const r of data.refs || []) { const { b64, mime, ...rest } = r; await DB.put('refs', { ...rest, blob: b64 ? base64ToBlob(b64, mime) : null }); }
     for (const i of data.images || []) { const { b64, mime, ...rest } = i; await DB.put('images', { ...rest, blob: base64ToBlob(b64, mime) }); }
     await reloadData(); render(); toast('Respaldo restaurado');
   } catch (e) { toast('Ese archivo no es un respaldo de Whoops AI!'); }
@@ -1383,8 +1413,8 @@ document.addEventListener('click', async (e) => {
     case 'backup': backup(); break;
     case 'restore': pickFile('#restorefile', restore); break;
     case 'wipe': modal({ title: 'Borrar todo', okLabel: 'Borrar todo', body: '<p style="margin:0">Se borrarán clientes, campañas, imágenes, recetas e historial de este navegador. Tu clave y tus ajustes se mantienen. Te recomendamos descargar un respaldo antes.</p>',
-      onOk: async () => { for (const st of ['clients', 'campaigns', 'sessions', 'images', 'recipes']) await DB.clear(st); S.draft = null; S.ctx = { clientId: null, campaignId: null }; await reloadData(); render(); toast('Datos borrados'); } }); break;
-    default: break;
+      onOk: async () => { for (const st of ['clients', 'campaigns', 'sessions', 'images', 'recipes', 'refs', 'concepts', 'frameworks', 'brands', 'notes']) await DB.clear(st); S.draft = null; S.ctx = { clientId: null, campaignId: null }; await reloadData(); render(); toast('Datos borrados'); } }); break;
+    default: if (ACTIONS[a]) await ACTIONS[a](t, e); break;
   }
 });
 
@@ -1397,6 +1427,7 @@ document.addEventListener('change', async (e) => {
   else if (t.dataset.filter) { S.libFilter[t.dataset.filter] = t.value; render(); }
   else if (t.dataset.note) { await updateImage(t.dataset.note, { note: t.value }); toast('Nota guardada'); }
   else if (t.dataset.set) { S.settings[t.dataset.set] = t.value; saveSettings(); toast('Guardado'); }
+  else if (t.dataset.ch && CHANGES[t.dataset.ch]) { await CHANGES[t.dataset.ch](t, e); }
   else if (t.dataset.bridgeUrl) { S.settings.bridges[t.dataset.bridgeUrl].url = t.value.trim(); saveSettings(); toast('Link guardado'); }
 });
 
@@ -1409,6 +1440,7 @@ document.addEventListener('paste', (e) => {
   }
   const blob = item.getAsFile();
   if (S.view === 'crear') { e.preventDefault(); setRef(blob); }
+  else if (S.view === 'research') { e.preventDefault(); setCapture(blob); }
   else if (S.view === 'comparar') {
     e.preventDefault();
     let tgt = S.pasteTarget;
@@ -1448,6 +1480,732 @@ document.addEventListener('keydown', (e) => {
   if (!S.settings.apiKey) S.view = 'crear';
   render();
 })();
+
+/* ============ Parte 2 · Research (swipe file) ============ */
+const SOURCES = ['Meta Ad Library', 'TikTok Creative Center', 'Pinterest', 'Behance', 'Dribbble', 'Web o redes'];
+const ANGLES = ['Beneficio', 'Urgencia', 'Social proof', 'Antes / después', 'Problema–solución', 'Autoridad', 'Oferta', 'Estilo de vida', 'Branding'];
+const TAGTYPE = { angle: { label: 'Ángulo', cls: 'lav' }, hook: { label: 'Hook', cls: 'mint' }, industry: { label: 'Industria', cls: '' }, format: { label: 'Formato', cls: '' } };
+const ANALYSIS_KEYS = ['Hook', 'Ángulo de venta', 'Composición', 'Jerarquía', 'Copy', 'CTA', 'Formato'];
+S.cap = { blob: null, url: '', source: SOURCES[0], brand: '' };
+S.capURL = null;
+
+function refURL(r) {
+  if (!r || !r.blob) return '';
+  const k = 'ref:' + r.id;
+  if (!urlCache.has(k)) urlCache.set(k, URL.createObjectURL(r.blob));
+  return urlCache.get(k);
+}
+function tagChip(tg, removable, refId, i) {
+  const c = (TAGTYPE[tg.t] || {}).cls || '';
+  return `<span class="tag ${c}" title="${esc((TAGTYPE[tg.t] || {}).label || '')}">${esc(tg.l)}${removable ? ` <button style="border:0;background:transparent;cursor:pointer;padding:0 0 0 4px;color:inherit" aria-label="Quitar ${esc(tg.l)}" data-act="rtag-del" data-id="${refId}" data-i="${i}">×</button>` : ''}</span>`;
+}
+function refsInScope() {
+  const f = S.rf;
+  return S.refs.filter((r) => {
+    if (f.client === 'ctx') {
+      if (S.ctx.clientId && r.clientId !== S.ctx.clientId) return false;
+    } else if (f.client !== 'all' && r.clientId !== f.client) return false;
+    return true;
+  });
+}
+function refAngles(r) { return (r.tags || []).filter((t) => t.t === 'angle').map((t) => t.l); }
+function refFormat(r) { const t = (r.tags || []).find((x) => x.t === 'format'); return t ? t.l : ''; }
+
+function viewResearch() {
+  const f = S.rf;
+  let refs = refsInScope();
+  const pending = refs.filter((r) => (r.suggested || []).length || r.status !== 'analyzed').length;
+  if (f.tab === 'pending') refs = refs.filter((r) => (r.suggested || []).length || r.status !== 'analyzed');
+  if (f.source !== 'all') refs = refs.filter((r) => r.source === f.source);
+  if (f.angle !== 'all') refs = refs.filter((r) => refAngles(r).includes(f.angle));
+  if (f.format !== 'all') refs = refs.filter((r) => refFormat(r) === f.format);
+  const formats = [...new Set(S.refs.map(refFormat).filter(Boolean))];
+  const sel = (name, opts, val) => `<select class="input" style="height:40px;width:auto" data-ch="rf" data-k="${name}">${opts.map(([v, l]) => `<option value="${esc(v)}" ${val === v ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select>`;
+  const c = S.cap;
+  const capture = `<section class="card" aria-labelledby="h-cap"><h2 id="h-cap" style="font-size:15px">Captura rápida</h2>
+    <div style="display:grid;grid-template-columns:minmax(0,1fr) 220px;gap:16px" class="capgrid">
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <label class="field"><span>Link del ad o la publicación</span><input class="input" id="capurl" type="url" value="${esc(c.url)}" placeholder="https://…"></label>
+        <div class="grid2" style="gap:10px">
+          <label class="field"><span>Fuente</span><select class="input" id="capsrc">${SOURCES.map((s) => `<option ${c.source === s ? 'selected' : ''}>${s}</option>`).join('')}</select></label>
+          <label class="field"><span>Marca <span class="muted" style="font-weight:400">(si la sabes)</span></span><input class="input" id="capbrand" value="${esc(c.brand)}" placeholder="La IA intenta detectarla"></label>
+        </div>
+        <div class="row"><button class="btn primary" data-act="cap-save" ${S.busy === 'cap' ? 'disabled' : ''}>${S.busy === 'cap' ? '<span class="spin"></span> Analizando…' : 'Guardar y analizar'}</button>
+          <span class="small muted">Gemini analiza la captura y sugiere etiquetas. Sin captura, se guarda solo el link.</span></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        ${c.blob ? `<div style="position:relative"><img src="${S.capURL}" alt="Captura cargada" style="width:100%;height:150px;object-fit:cover;border-radius:12px"><button class="iconbtn" style="position:absolute;top:6px;right:6px;width:30px;height:30px" aria-label="Quitar captura" data-act="cap-clear">${IC(I.x, 14)}</button></div>`
+          : `<button class="drop" data-act="cap-pick" id="capdrop" style="min-height:150px">${IC(I.upload, 22)}Pega la captura (Ctrl+V), arrástrala o toca para elegirla</button>`}
+        <button class="btn sm" data-act="cap-clip">${IC(I.copy, 14)}Pegar imagen copiada</button>
+      </div>
+    </div></section>`;
+  const cards = refs.map((r) => {
+    const pend = (r.suggested || []).length || r.status !== 'analyzed';
+    const hook = r.analysis && r.analysis.Hook ? r.analysis.Hook : (r.status === 'error' ? 'No se pudo analizar' : r.blob ? 'Pendiente de análisis' : 'Solo link, sin captura');
+    return `<button class="tile" style="text-align:left;cursor:pointer" data-act="ref-open" data-id="${r.id}">
+      <div class="imgwrap">${r.blob ? `<img src="${refURL(r)}" alt="Referencia de ${esc(r.brand || r.source)}" style="width:100%;max-height:300px;object-fit:cover;display:block">` : `<div style="height:140px;background:var(--lav-tint);display:flex;align-items:center;justify-content:center;color:var(--purple);font-size:12px;padding:12px;word-break:break-all">${esc(r.url || 'Sin captura')}</div>`}
+        <span style="position:absolute;top:8px;left:8px;font-size:11px;font-weight:600;padding:3px 8px;border-radius:6px;background:rgba(255,255,255,.92)">${esc(r.source)}</span>
+        ${pend ? '<span style="position:absolute;top:8px;right:8px;font-size:11px;font-weight:600;padding:3px 8px;border-radius:6px;background:var(--lav);color:var(--lav-ink)">Por etiquetar</span>' : ''}</div>
+      <span style="display:flex;justify-content:space-between;gap:8px;padding:0 4px"><b style="font-weight:600;font-size:14px">${esc(r.brand || 'Sin marca')}</b><span class="small muted">${esc(refFormat(r))}</span></span>
+      <span class="small clamp" style="padding:0 4px;color:var(--ink3)">${esc(hook)}</span>
+      <span class="row" style="gap:4px;padding:0 4px 4px">${(r.tags || []).slice(0, 4).map((t) => tagChip(t)).join('')}</span>
+    </button>`;
+  }).join('');
+  return topBar('Research') + (S.error ? `<div class="alert err" role="alert">${esc(S.error)}</div>` : '') + capture +
+    `<div class="row" style="justify-content:space-between">
+      <div class="tabs" role="tablist" aria-label="Vista del swipe file"><button role="tab" aria-selected="${f.tab === 'all'}" data-act="rf-tab" data-v="all">Todas</button>
+        <button role="tab" aria-selected="${f.tab === 'pending'}" data-act="rf-tab" data-v="pending">Por etiquetar ${pending ? `<span class="badge" style="background:var(--lav);color:var(--lav-ink)">${pending}</span>` : ''}</button></div>
+      <div class="row">
+        <label class="row small muted" style="gap:6px">Fuente ${sel('source', [['all', 'Todas'], ...SOURCES.map((s) => [s, s])], f.source)}</label>
+        <label class="row small muted" style="gap:6px">Ángulo ${sel('angle', [['all', 'Todos'], ...ANGLES.map((s) => [s, s])], f.angle)}</label>
+        <label class="row small muted" style="gap:6px">Formato ${sel('format', [['all', 'Todos'], ...formats.map((s) => [s, s])], f.format)}</label>
+        <label class="row small muted" style="gap:6px">Cliente ${sel('client', [['ctx', S.ctx.clientId ? 'Este cliente' : 'Todos'], ['all', 'Todos'], ...S.clients.map((c) => [c.id, c.name])], f.client)}</label>
+      </div></div>
+    ${refs.length ? `<div class="grid4">${cards}</div>` : `<section class="card"><div class="empty">${IC(VIEWS.research.icon, 28)}<span>Aún no hay referencias aquí.<br>Navega Meta Ad Library, TikTok Creative Center o Pinterest, copia una captura y pégala en Captura rápida.</span></div></section>`}`;
+}
+AFTER.research = () => {
+  const d = $('#capdrop');
+  ['capurl', 'capsrc', 'capbrand'].forEach((id) => {
+    const el = $('#' + id);
+    if (el) el.addEventListener('input', () => { S.cap[{ capurl: 'url', capsrc: 'source', capbrand: 'brand' }[id]] = el.value; });
+  });
+  if (d) {
+    d.addEventListener('dragover', (e) => { e.preventDefault(); d.classList.add('over'); });
+    d.addEventListener('dragleave', () => d.classList.remove('over'));
+    d.addEventListener('drop', (e) => { e.preventDefault(); e.stopPropagation(); const f = [...e.dataTransfer.files].find((x) => x.type.startsWith('image/')); if (f) setCapture(f); else toast('Eso no es una imagen'); });
+  }
+};
+function setCapture(blob) {
+  if (S.capURL) URL.revokeObjectURL(S.capURL);
+  S.cap.blob = blob; S.capURL = URL.createObjectURL(blob); render();
+}
+async function analyzeRef(r) {
+  const parts = [{ text: `Eres estratega creativo y director de arte experto en paid ads. Analiza esta referencia${r.source ? ' de ' + r.source : ''}${r.url ? ' (link: ' + r.url + ')' : ''}.
+Responde en español, frases claras y concretas (1–2 frases por punto), explicando por qué funciona.
+Etiquetas: usa type "angle" con uno o dos de: ${ANGLES.join(', ')}; type "hook" con el tipo de hook en 1–3 palabras (ej. POV, Pregunta directa, Macro textura, Contador, Review card); type "industry" con la industria en 1–2 palabras; type "format" con la proporción aproximada (1:1, 4:5, 9:16, 16:9, 4:3) o "Video" si es un frame de video.
+Responde solo JSON: {"brand":"marca visible o vacío","analysis":{${ANALYSIS_KEYS.map((k) => `"${k}":"..."`).join(',')}},"tags":[{"type":"angle","label":"..."}]}` }];
+  parts.push({ inlineData: { mimeType: r.blob.type || 'image/png', data: await blobToBase64(r.blob) } });
+  const out = await geminiJSON(parts);
+  r.analysis = {};
+  for (const k of ANALYSIS_KEYS) r.analysis[k] = String((out.analysis && out.analysis[k]) || '');
+  if (!r.brand && out.brand) r.brand = String(out.brand).slice(0, 60);
+  r.suggested = (Array.isArray(out.tags) ? out.tags : []).filter((t) => t && t.label && TAGTYPE[t.type]).map((t) => ({ t: t.type, l: String(t.label).slice(0, 40) }));
+  r.status = 'analyzed';
+}
+async function saveCapture() {
+  const c = S.cap;
+  c.url = ($('#capurl') || {}).value || c.url; c.source = ($('#capsrc') || {}).value || c.source; c.brand = ($('#capbrand') || {}).value || c.brand;
+  if (!c.blob && !c.url.trim()) { toast('Pega una captura o un link'); return; }
+  const r = { id: uid(), blob: c.blob, url: c.url.trim(), source: c.source, brand: c.brand.trim(), clientId: S.ctx.clientId, campaignId: S.ctx.campaignId, created: Date.now(), status: c.blob ? 'pending' : 'link', tags: [], suggested: [], analysis: null, conceptIds: [] };
+  await DB.put('refs', r);
+  S.cap = { blob: null, url: '', source: c.source, brand: '' };
+  if (S.capURL) { URL.revokeObjectURL(S.capURL); S.capURL = null; }
+  S.error = null;
+  if (r.blob && S.settings.apiKey) {
+    S.busy = 'cap'; render();
+    try { await analyzeRef(r); await DB.put('refs', r); toast('Referencia guardada y analizada'); } catch (e) { r.status = 'error'; await DB.put('refs', r); S.error = e.message; }
+    S.busy = false;
+  } else toast(r.blob ? 'Guardada. Conecta Gemini en Ajustes para analizarla.' : 'Link guardado');
+  await reloadData(); render();
+}
+ACTIONS['cap-pick'] = () => pickFile('#anyfile', setCapture);
+ACTIONS['cap-clip'] = async () => { const b = await readClipboardImage(); if (b) setCapture(b); };
+ACTIONS['cap-clear'] = () => { S.cap.blob = null; render(); };
+ACTIONS['cap-save'] = () => saveCapture();
+ACTIONS['rf-tab'] = (t) => { S.rf.tab = t.dataset.v; render(); };
+CHANGES.rf = (t) => { S.rf[t.dataset.k] = t.value; render(); };
+ACTIONS['ref-open'] = (t) => { S.refId = t.dataset.id; go('referencia'); };
+
+/* ---- Análisis de referencia ---- */
+function viewReferencia() {
+  const r = S.refs.find((x) => x.id === S.refId);
+  if (!r) { S.view = 'research'; return viewResearch(); }
+  const brandFollowed = r.brand && S.brands.some((b) => b.name.toLowerCase() === r.brand.toLowerCase() && b.followed);
+  const linked = S.concepts.filter((c) => (r.conceptIds || []).includes(c.id));
+  const rows = r.analysis ? ANALYSIS_KEYS.map((k) => `<div style="display:grid;grid-template-columns:140px minmax(0,1fr);gap:16px;padding:12px 0;border-top:1px solid var(--bg)"><span style="font-size:13px;font-weight:600;color:var(--purple)">${k}</span><p style="margin:0">${esc(r.analysis[k] || '—')}</p></div>`).join('')
+    : `<div class="empty"><span>${r.blob ? (r.status === 'error' ? 'El análisis falló.' : 'Aún no se analiza.') : 'Esta referencia es solo un link. Agrega una captura para analizarla.'}</span></div>`;
+  return topBar('Análisis de referencia', `<button class="btn sm" data-go="research">Volver al swipe file</button>
+      ${r.blob ? `<button class="btn sm primary" data-act="ref-use">Usar como referencia</button>` : ''}`) +
+    (S.error ? `<div class="alert err" role="alert">${esc(S.error)}</div>` : '') +
+    `<div style="display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start">
+      <section style="flex:0 1 360px;min-width:280px;display:flex;flex-direction:column;gap:14px" aria-label="Referencia">
+        ${r.blob ? `<img src="${refURL(r)}" alt="Referencia de ${esc(r.brand || r.source)}" style="width:100%;border-radius:16px;display:block">` : ''}
+        ${!r.blob ? `<button class="drop" data-act="ref-addimg" data-id="${r.id}">${IC(I.upload, 22)}Agregar captura</button>` : ''}
+        <div class="card tight" style="display:grid;grid-template-columns:90px minmax(0,1fr);gap:8px 12px;font-size:13px">
+          <span class="muted">Marca</span><input class="input" style="height:36px" data-ch="ref-brand" data-id="${r.id}" value="${esc(r.brand || '')}" placeholder="Nombre de la marca">
+          <span class="muted">Fuente</span><span>${esc(r.source)}</span>
+          <span class="muted">Link</span><span style="word-break:break-all">${r.url ? `<a href="${esc(r.url)}" target="_blank" rel="noopener">Ver original</a>` : '—'}</span>
+          <span class="muted">Guardada</span><span>${new Date(r.created).toLocaleDateString('es-CL', { dateStyle: 'medium' })}</span>
+          <span class="muted">Cliente</span><select class="input" style="height:36px" data-ch="ref-client" data-id="${r.id}"><option value="">Sin cliente</option>${S.clients.map((c) => `<option value="${c.id}" ${r.clientId === c.id ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}</select>
+        </div>
+        ${r.brand ? `<button class="btn sm" data-act="brand-follow" data-name="${esc(r.brand)}">${brandFollowed ? '✓ Siguiendo a ' + esc(r.brand) : 'Seguir a ' + esc(r.brand) + ' en Competidores'}</button>` : ''}
+        <button class="btn sm ghost" data-act="ref-del" data-id="${r.id}" style="color:var(--red)">${IC(I.trash, 14)}Eliminar referencia</button>
+      </section>
+      <section class="card" style="flex:999 1 480px;gap:4px" aria-labelledby="h-why">
+        <div class="row" style="justify-content:space-between;padding-bottom:10px"><div class="row">${aiChip('Gemini', 12)}<h2 id="h-why">Por qué funciona</h2></div>
+          ${r.blob ? `<button class="btn sm" data-act="ref-reanalyze" data-id="${r.id}" ${S.busy ? 'disabled' : ''}>${S.busy === 'ref' ? '<span class="spin"></span> Analizando…' : 'Volver a analizar'}</button>` : ''}</div>
+        ${rows}
+        <div style="display:flex;flex-direction:column;gap:10px;padding-top:14px;border-top:1px solid var(--line)">
+          <span class="lbl">Etiquetas</span>
+          <div class="row" style="gap:6px">${(r.tags || []).map((t, i) => tagChip(t, true, r.id, i)).join('') || '<span class="small muted">Sin etiquetas todavía</span>'}</div>
+          ${(r.suggested || []).length ? `<span class="small muted">Sugeridas por la IA (toca para aceptar)</span><div class="row" style="gap:6px">${r.suggested.map((t, i) => `<button class="chip add" data-act="rtag-ok" data-id="${r.id}" data-i="${i}">+ ${esc(t.l)}</button>`).join('')}
+            <button class="btn sm" data-act="rtag-all" data-id="${r.id}">Aceptar todas</button></div>` : ''}
+          <button class="chip add" style="align-self:flex-start" data-act="rtag-add" data-id="${r.id}">+ Agregar etiqueta</button>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;padding-top:14px;border-top:1px solid var(--line);margin-top:10px">
+          <span class="lbl">Conceptos vinculados</span>
+          <div class="row">${linked.map((c) => `<button class="chip" data-act="concept-open" data-id="${c.id}">${esc(c.name)}</button>`).join('') || '<span class="small muted">Ninguno</span>'}
+          <button class="btn sm" data-act="ref-link" data-id="${r.id}">Vincular a un concepto</button></div>
+        </div>
+      </section></div>`;
+}
+async function saveRef(r) { await DB.put('refs', r); await reloadData(); render(); }
+const refById = (id) => S.refs.find((x) => x.id === id);
+ACTIONS['rtag-ok'] = async (t) => { const r = refById(t.dataset.id); r.tags = [...(r.tags || []), r.suggested.splice(+t.dataset.i, 1)[0]]; await saveRef(r); };
+ACTIONS['rtag-all'] = async (t) => { const r = refById(t.dataset.id); r.tags = [...(r.tags || []), ...r.suggested]; r.suggested = []; await saveRef(r); };
+ACTIONS['rtag-del'] = async (t) => { const r = refById(t.dataset.id); r.tags.splice(+t.dataset.i, 1); await saveRef(r); };
+ACTIONS['rtag-add'] = (t) => {
+  const r = refById(t.dataset.id);
+  modal({ title: 'Agregar etiqueta', okLabel: 'Agregar',
+    body: `<label class="field"><span>Tipo</span><select class="input" name="type">${Object.entries(TAGTYPE).map(([k, v]) => `<option value="${k}">${v.label}</option>`).join('')}</select></label>
+      <label class="field"><span>Etiqueta</span><input class="input" name="label" list="anglelist"><datalist id="anglelist">${ANGLES.map((a) => `<option value="${a}">`).join('')}</datalist></label>`,
+    onOk: async (f) => { if (!f.label.trim()) return false; r.tags = [...(r.tags || []), { t: f.type, l: f.label.trim() }]; await saveRef(r); } });
+};
+ACTIONS['ref-reanalyze'] = async (t) => {
+  const r = refById(t.dataset.id);
+  S.busy = 'ref'; S.error = null; render();
+  try { await analyzeRef(r); await DB.put('refs', r); toast('Análisis actualizado'); } catch (e) { S.error = e.message; }
+  S.busy = false; await reloadData(); render();
+};
+ACTIONS['ref-addimg'] = (t) => pickFile('#anyfile', async (f) => {
+  const r = refById(t.dataset.id); r.blob = f; r.status = 'pending'; await DB.put('refs', r); await reloadData();
+  ACTIONS['ref-reanalyze'](t);
+});
+ACTIONS['ref-del'] = (t) => modal({ title: 'Eliminar referencia', okLabel: 'Eliminar', body: '<p style="margin:0">Se eliminará del swipe file. Esto no se puede deshacer.</p>',
+  onOk: async () => { await DB.del('refs', t.dataset.id); await reloadData(); go('research'); } });
+ACTIONS['ref-use'] = () => { const r = refById(S.refId); S.draft = newDraft(); go('crear'); setRef(r.blob); };
+CHANGES['ref-brand'] = async (t) => { const r = refById(t.dataset.id); r.brand = t.value.trim(); await saveRef(r); };
+CHANGES['ref-client'] = async (t) => { const r = refById(t.dataset.id); r.clientId = t.value || null; await saveRef(r); };
+ACTIONS['brand-follow'] = async (t) => {
+  const name = t.dataset.name;
+  let b = S.brands.find((x) => x.name.toLowerCase() === name.toLowerCase());
+  if (!b) b = { id: uid(), name, followed: false, created: Date.now(), clientId: S.ctx.clientId };
+  b.followed = !b.followed; await DB.put('brands', b); await reloadData(); render();
+  toast(b.followed ? `Siguiendo a ${name} en Competidores` : `Dejaste de seguir a ${name}`);
+};
+ACTIONS['ref-link'] = (t) => {
+  const r = refById(t.dataset.id);
+  const cs = S.concepts.filter((c) => !S.ctx.campaignId || c.campaignId === S.ctx.campaignId);
+  if (!cs.length) { toast('Todavía no tienes conceptos. Crea uno en Conceptos.'); return; }
+  modal({ title: 'Vincular a un concepto', okLabel: 'Vincular',
+    body: `<label class="field"><span>Concepto</span><select class="input" name="c">${cs.map((c) => `<option value="${c.id}">${esc(c.name)} · ${esc((campaignById(c.campaignId) || {}).name || 'General')}</option>`).join('')}</select></label>`,
+    onOk: async (f) => {
+      r.conceptIds = [...new Set([...(r.conceptIds || []), f.c])]; await DB.put('refs', r);
+      const c = S.concepts.find((x) => x.id === f.c); c.refIds = [...new Set([...(c.refIds || []), r.id])]; await DB.put('concepts', c);
+      await reloadData(); render(); toast('Referencia vinculada');
+    } });
+};
+
+/* ============ Parte 2 · Conceptos ============ */
+const CSTATUS = { explorando: { label: 'Explorando', dot: '#D8C7FD' }, elegido: { label: 'Elegidos', dot: '#56C89F' }, descartado: { label: 'Descartados', dot: '#D4D4D8' } };
+const CFIELDS = [['insight', 'Insight', 2], ['angle', 'Ángulo', 1], ['message', 'Mensaje clave', 2], ['headline', 'Headline', 1], ['body', 'Texto', 2], ['cta', 'CTA', 1], ['visual', 'Dirección visual', 3]];
+function conceptsInScope() {
+  return S.concepts.filter((c) => (S.ctx.campaignId ? c.campaignId === S.ctx.campaignId : S.ctx.clientId ? c.clientId === S.ctx.clientId : !c.clientId));
+}
+const conceptById = (id) => S.concepts.find((c) => c.id === id);
+const conceptImages = (id) => S.images.filter((i) => i.conceptId === id && i.kind !== 'ref');
+
+function viewConceptos() {
+  const cs = conceptsInScope();
+  const col = (st) => {
+    const list = cs.filter((c) => (c.status || 'explorando') === st);
+    return `<section class="card tight" style="background:rgba(255,255,255,.6)" aria-label="${CSTATUS[st].label}">
+      <div class="row" style="gap:8px;padding:2px 4px"><span aria-hidden="true" style="width:10px;height:10px;border-radius:99px;background:${CSTATUS[st].dot}"></span><h2 style="font-size:14px">${CSTATUS[st].label}</h2><span class="small muted">${list.length}</span></div>
+      ${list.map((c) => `<button class="card tight" style="text-align:left;cursor:pointer;${st === 'elegido' ? 'border-color:var(--mint);' : ''}${st === 'descartado' ? 'opacity:.6;' : ''}" data-act="concept-open" data-id="${c.id}">
+        <span class="row" style="justify-content:space-between">${c.fields.angle ? `<span class="tag lav">${esc(c.fields.angle)}</span>` : '<span></span>'}<span class="small muted">v${(c.versions || []).length || 1}</span></span>
+        <b style="font-weight:600;font-size:15px;line-height:1.35">${esc(c.name)}</b>
+        ${c.fields.insight ? `<span class="small clamp" style="color:var(--ink3)"><b style="font-weight:600;color:var(--ink)">Insight:</b> ${esc(c.fields.insight)}</span>` : ''}
+        <span class="row small muted" style="gap:12px;border-top:1px solid var(--bg);padding-top:8px">${(c.refIds || []).length} referencias · ${conceptImages(c.id).length} imágenes</span>
+      </button>`).join('') || '<span class="small muted" style="padding:6px">Nada aquí todavía</span>'}
+    </section>`;
+  };
+  return topBar('Conceptos', `<button class="btn sm" data-go="mapa">Ver mapa</button><button class="btn sm primary" data-act="concept-new">${IC(I.plus, 14)}Nuevo concepto</button>`) +
+    (!S.ctx.campaignId ? `<div class="alert info">Elige una campaña en el menú para ordenar los conceptos por campaña. Ahora estás viendo ${S.ctx.clientId ? 'los conceptos del cliente' : 'los conceptos generales'}.</div>` : '') +
+    `<div class="grid3" style="align-items:start">${col('explorando')}${col('elegido')}${col('descartado')}</div>`;
+}
+ACTIONS['concept-new'] = () => modal({
+  title: 'Nuevo concepto', okLabel: 'Crear concepto',
+  body: `<label class="field"><span>Nombre del concepto</span><input class="input" name="name" placeholder="Ej: Glow que dura todo el verano"></label>
+    <label class="field"><span>Ángulo</span><select class="input" name="angle"><option value="">Sin definir</option>${ANGLES.map((a) => `<option>${a}</option>`).join('')}</select></label>
+    <label class="field"><span>Idea o insight inicial <span class="muted" style="font-weight:400">(opcional)</span></span><textarea class="input" name="insight" rows="2"></textarea></label>`,
+  onOk: async (f) => {
+    if (!f.name.trim()) { toast('Ponle un nombre'); return false; }
+    const fields = { insight: f.insight || '', angle: f.angle || '', message: '', headline: '', body: '', cta: '', visual: '', palette: [] };
+    const c = { id: uid(), name: f.name.trim(), status: 'explorando', campaignId: S.ctx.campaignId, clientId: S.ctx.clientId, fields, versions: [{ n: 1, at: Date.now(), fields: structuredClone(fields), note: 'Creación' }], chat: [], refIds: [], metrics: '', created: Date.now() };
+    await DB.put('concepts', c); await reloadData(); S.conceptId = c.id; go('concepto');
+  },
+});
+ACTIONS['concept-open'] = (t) => { S.conceptId = t.dataset.id; go('concepto'); };
+
+function viewConcepto() {
+  const c = conceptById(S.conceptId);
+  if (!c) { S.view = 'conceptos'; return viewConceptos(); }
+  const F = c.fields;
+  const refs = S.refs.filter((r) => (c.refIds || []).includes(r.id));
+  const imgs = conceptImages(c.id);
+  const others = S.concepts.filter((x) => x.id !== c.id && x.campaignId === c.campaignId && x.status !== 'descartado');
+  const fw = S.frameworks.find((x) => x.id === c.frameworkId);
+  const row = ([k, label, rows]) => `<label class="frow"><span>${label}</span>${k === 'angle'
+    ? `<select class="input" data-ch="cf" data-k="angle"><option value="">Sin definir</option>${ANGLES.map((a) => `<option ${F.angle === a ? 'selected' : ''}>${a}</option>`).join('')}${F.angle && !ANGLES.includes(F.angle) ? `<option selected>${esc(F.angle)}</option>` : ''}</select>`
+    : rows > 1 ? `<textarea class="input" rows="${rows}" data-ch="cf" data-k="${k}">${esc(F[k] || '')}</textarea>` : `<input class="input" data-ch="cf" data-k="${k}" value="${esc(F[k] || '')}">`}</label>`;
+  const pal = (F.palette || []).concat(Array(Math.max(0, 4 - (F.palette || []).length)).fill('#FFFFFF')).slice(0, 4);
+  return topBar(esc(c.name), `<label class="row small muted" style="gap:6px">Estado<select class="input" style="height:40px;width:auto" data-ch="cstatus">${Object.entries(CSTATUS).map(([k, v]) => `<option value="${k}" ${c.status === k ? 'selected' : ''}>${v.label.replace(/s$/, '')}</option>`).join('')}</select></label>
+      <label class="row small muted" style="gap:6px">Versión<select class="input" style="height:40px;width:auto" data-ch="cver">${(c.versions || []).map((v, i) => `<option value="${i}" ${i === c.versions.length - 1 ? 'selected' : ''}>v${v.n}${i === c.versions.length - 1 ? ' · actual' : ' · ' + esc(v.note || '')}</option>`).join('')}</select></label>
+      <button class="btn sm primary" data-act="concept-down">Bajar a imágenes ${IC(I.right, 14)}</button>`) +
+    (S.error ? `<div class="alert err" role="alert">${esc(S.error)}</div>` : '') +
+    `<div style="display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start">
+      <div style="flex:999 1 520px;min-width:0;display:flex;flex-direction:column;gap:16px">
+        <section class="card" style="gap:0" aria-label="Ficha del concepto">
+          <label class="frow" style="border-top:0"><span>Nombre</span><input class="input" data-ch="cname" value="${esc(c.name)}"></label>
+          ${CFIELDS.map(row).join('')}
+          <div class="frow"><span>Paleta</span><div class="row">${pal.map((h, i) => `<label style="display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px" class="muted"><input type="color" value="${esc(h)}" data-ch="cpal" data-i="${i}" style="width:44px;height:44px;border:1px solid var(--line);border-radius:10px;padding:2px;background:#fff;cursor:pointer" aria-label="Color ${i + 1} de la paleta">${esc(h)}</label>`).join('')}</div></div>
+          <div class="frow"><span>Framework</span><div class="row">${fw ? `<span class="tag mint" style="font-size:12px;padding:5px 10px">${esc(fw.name)}</span><button class="btn sm ghost" data-act="cfw-clear">Quitar</button>` : '<span class="small muted">Ninguno</span>'}<button class="btn sm" data-go="frameworks">Elegir en la biblioteca</button></div></div>
+          <label class="frow"><span>Resultados</span><textarea class="input" rows="2" data-ch="cmetrics" placeholder="Métricas o aprendizajes de la campaña (CTR, CPA, comentarios del cliente…)">${esc(c.metrics || '')}</textarea></label>
+        </section>
+        <div class="grid2">
+          <section class="card tight" aria-labelledby="h-crefs"><div class="row" style="justify-content:space-between"><h3 id="h-crefs">Referencias vinculadas</h3><button class="btn sm ghost" data-act="cref-add">+ Agregar</button></div>
+            ${refs.length ? `<div class="grid4" style="gap:8px">${refs.map((r) => `<button data-act="ref-open" data-id="${r.id}" style="border:0;padding:0;background:var(--lav-tint);border-radius:8px;overflow:hidden;aspect-ratio:3/4;cursor:pointer" aria-label="Referencia ${esc(r.brand || r.source)}">${r.blob ? `<img src="${refURL(r)}" alt="" style="width:100%;height:100%;object-fit:cover">` : ''}</button>`).join('')}</div>` : '<span class="small muted">Vincula ejemplos de tu swipe file.</span>'}</section>
+          <section class="card tight" aria-labelledby="h-cimgs"><div class="row" style="justify-content:space-between"><h3 id="h-cimgs">Imágenes de este concepto</h3>${imgs.length ? `<button class="btn sm ghost" data-act="cimgs-lib">Ver en biblioteca</button>` : ''}</div>
+            ${imgs.length ? `<div class="grid4" style="gap:8px">${imgs.slice(0, 8).map((i) => `<button data-act="edit-img" data-id="${i.id}" style="border:0;padding:0;border-radius:8px;overflow:hidden;aspect-ratio:4/5;cursor:pointer;position:relative" aria-label="Imagen de ${esc(i.model)}"><img src="${imgURL(i)}" alt="" style="width:100%;height:100%;object-fit:cover">${i.mark === 'ok' ? '<span class="mark ok" style="position:absolute;top:4px;right:4px;width:20px;height:20px;font-size:11px;border-radius:99px;display:flex;align-items:center;justify-content:center">✓</span>' : ''}</button>`).join('')}</div>` : '<span class="small muted">Usa «Bajar a imágenes» para crearlas.</span>'}</section>
+        </div>
+      </div>
+      <aside class="card" style="flex:1 1 340px;max-width:420px;padding:0;gap:0;min-height:620px" aria-labelledby="h-chat">
+        <div class="row" style="padding:16px 18px;border-bottom:1px solid var(--line)">${aiChip('Gemini', 12)}<div><h2 id="h-chat" style="font-size:15px">Iterar con IA</h2><span class="small muted">Cada cambio guarda una versión</span></div></div>
+        <div class="chat" id="cchat" style="flex:1;padding:16px 18px;max-height:520px">${(c.chat || []).length ? c.chat.map((m) => `<div class="msg ${m.role === 'user' ? 'u' : 'a'}">${esc(m.text)}${m.version ? `\n<span class="status ok" style="display:inline-block;margin-top:6px">✓ Ficha actualizada · v${m.version}</span>` : ''}</div>`).join('')
+          : '<span class="small muted">Pídele cambios en español o spanglish: «el headline está muy genérico», «dame 3 hooks», «hazlo más summer»…</span>'}
+          ${S.busy === 'chat' ? '<div class="msg a"><span class="spin"></span></div>' : ''}</div>
+        <div class="row" style="gap:6px;padding:0 18px 10px">
+          <button class="btn sm" data-act="cchat-quick" data-v="Dame 3 hooks más para este concepto">Dame 3 hooks más</button>
+          <button class="btn sm" data-act="cchat-quick" data-v="Hazlo más corto y directo">Más corto y directo</button>
+          ${others.slice(0, 1).map((o) => `<button class="btn sm" data-act="cchat-quick" data-v="Combínalo con el concepto «${esc(o.name)}»">Combinar con «${esc(o.name)}»</button>`).join('')}
+        </div>
+        <form class="row" style="flex-wrap:nowrap;padding:12px 14px;border-top:1px solid var(--line)" data-cchat>
+          <label style="flex:1;display:flex"><span class="sr">Mensaje</span><input class="input" id="cchatin" style="border-radius:999px" placeholder="Pídele un cambio al concepto…" autocomplete="off"></label>
+          <button class="iconbtn" style="background:var(--lav);border-color:var(--lav);color:var(--lav-ink);width:44px;height:44px" aria-label="Enviar" ${S.busy === 'chat' ? 'disabled' : ''}>${IC(I.right, 16)}</button>
+        </form>
+      </aside></div>`;
+}
+AFTER.concepto = () => {
+  const box = $('#cchat'); if (box) box.scrollTop = box.scrollHeight;
+  const form = document.querySelector('[data-cchat]');
+  if (form) form.addEventListener('submit', (e) => { e.preventDefault(); const v = $('#cchatin').value.trim(); if (v) conceptChat(v); });
+};
+async function saveConcept(c, rerender = true) { await DB.put('concepts', c); await reloadData(); if (rerender) render(); }
+CHANGES.cf = async (t) => { const c = conceptById(S.conceptId); c.fields[t.dataset.k] = t.value; c.versions[c.versions.length - 1].fields = structuredClone(c.fields); await saveConcept(c, t.tagName === 'SELECT'); };
+CHANGES.cname = async (t) => { const c = conceptById(S.conceptId); c.name = t.value.trim() || c.name; await saveConcept(c); };
+CHANGES.cmetrics = async (t) => { const c = conceptById(S.conceptId); c.metrics = t.value; await saveConcept(c, false); toast('Guardado'); };
+CHANGES.cpal = async (t) => { const c = conceptById(S.conceptId); const p = (c.fields.palette || []).slice(); while (p.length < 4) p.push('#FFFFFF'); p[+t.dataset.i] = t.value.toUpperCase(); c.fields.palette = p; c.versions[c.versions.length - 1].fields = structuredClone(c.fields); await saveConcept(c); };
+CHANGES.cstatus = async (t) => { const c = conceptById(S.conceptId); c.status = t.value; await saveConcept(c); toast('Estado actualizado'); };
+CHANGES.cver = async (t) => {
+  const c = conceptById(S.conceptId), i = +t.value;
+  if (i === c.versions.length - 1) return;
+  const v = c.versions[i];
+  c.fields = structuredClone(v.fields);
+  c.versions.push({ n: c.versions.length + 1, at: Date.now(), fields: structuredClone(v.fields), note: `Restaurada de v${v.n}` });
+  await saveConcept(c); toast(`Restauraste la v${v.n} como versión nueva`);
+};
+ACTIONS['cfw-clear'] = async () => { const c = conceptById(S.conceptId); c.frameworkId = null; await saveConcept(c); };
+ACTIONS['cimgs-lib'] = () => { S.libTab = 'images'; S.libFilter.campaign = 'all'; go('biblioteca'); };
+ACTIONS['cchat-quick'] = (t) => conceptChat(t.dataset.v);
+ACTIONS['cref-add'] = () => {
+  const c = conceptById(S.conceptId);
+  const refs = S.refs.filter((r) => !c.clientId || !r.clientId || r.clientId === c.clientId);
+  if (!refs.length) { toast('Tu swipe file está vacío. Agrega referencias en Research.'); return; }
+  modal({ title: 'Vincular referencias', okLabel: 'Guardar',
+    body: `<div class="grid3" style="gap:10px;max-height:420px;overflow:auto">${refs.map((r) => `<label style="display:flex;flex-direction:column;gap:4px;font-size:12px;cursor:pointer"><span style="position:relative;display:block;aspect-ratio:3/4;border-radius:8px;overflow:hidden;background:var(--lav-tint)">${r.blob ? `<img src="${refURL(r)}" alt="" style="width:100%;height:100%;object-fit:cover">` : ''}<input type="checkbox" name="r_${r.id}" ${(c.refIds || []).includes(r.id) ? 'checked' : ''} style="position:absolute;top:6px;left:6px;width:18px;height:18px;accent-color:var(--purple)"></span>${esc(r.brand || r.source)}</label>`).join('')}</div>`,
+    onOk: async (f) => {
+      const ids = Object.keys(f).filter((k) => k.startsWith('r_')).map((k) => k.slice(2));
+      c.refIds = ids;
+      for (const r of S.refs) {
+        const has = (r.conceptIds || []).includes(c.id), want = ids.includes(r.id);
+        if (has !== want) { r.conceptIds = want ? [...(r.conceptIds || []), c.id] : r.conceptIds.filter((x) => x !== c.id); await DB.put('refs', r); }
+      }
+      await saveConcept(c);
+    } });
+};
+ACTIONS['concept-down'] = () => {
+  const c = conceptById(S.conceptId), F = c.fields;
+  S.ctx = { clientId: c.clientId || null, campaignId: c.campaignId || null };
+  const d = newDraft();
+  d.conceptId = c.id;
+  d.idea = [F.visual, F.headline ? `Headline: «${F.headline}»` : '', F.message ? `Mensaje: ${F.message}` : '', F.palette && F.palette.length ? `Paleta: ${F.palette.join(', ')}` : ''].filter(Boolean).join('. ') || c.name;
+  if (F.angle) { d.matrixOn = true; d.vars['Ángulo'] = [F.angle]; }
+  const r = S.refs.find((x) => (c.refIds || []).includes(x.id) && x.blob);
+  S.draft = d; go('crear');
+  if (r) setRef(r.blob);
+  toast('Concepto cargado en Crear. Ajusta la matriz y genera los prompts.');
+};
+
+async function conceptChat(text) {
+  const c = conceptById(S.conceptId);
+  if (!S.settings.apiKey) { toast('Conecta Gemini en Ajustes'); return; }
+  c.chat = [...(c.chat || []), { role: 'user', text, at: Date.now() }];
+  S.busy = 'chat'; S.error = null; await saveConcept(c);
+  const refs = S.refs.filter((r) => (c.refIds || []).includes(r.id) && r.analysis);
+  const fw = S.frameworks.find((x) => x.id === c.frameworkId);
+  const camp = campaignById(c.campaignId), cli = clientById(c.clientId);
+  const history = c.chat.slice(-10).map((m) => `${m.role === 'user' ? 'Diseñadora' : 'IA'}: ${m.text}`).join('\n');
+  const prompt = `Eres estratega creativo senior de paid ads trabajando con una diseñadora. Ayúdala a iterar este concepto de campaña. Responde en español (ella escribe en español o spanglish; los copys pueden ir en inglés si ya lo están).
+${cli ? `Cliente: ${cli.name} (${cli.industry || ''}). Notas: ${cli.notes || '—'}.` : ''} ${camp ? `Campaña: ${camp.name} (${camp.objective || ''}).` : ''}
+Concepto «${c.name}». Ficha actual (JSON): ${JSON.stringify(c.fields)}
+${fw ? `Framework elegido: ${fw.name} — fórmula: ${fw.formula}.` : ''}
+${refs.length ? `Referencias vinculadas:\n${refs.map((r) => `- ${r.brand || r.source}: hook ${r.analysis.Hook}; ángulo ${r.analysis['Ángulo de venta']}`).join('\n')}` : ''}
+Conversación reciente:
+${history}
+Si el último mensaje pide un cambio en la ficha, devuelve en "fields" SOLO los campos que cambian (claves posibles: insight, angle, message, headline, body, cta, visual). Si solo pide ideas u opiniones, deja "fields" en null y responde con las ideas.
+Responde solo JSON: {"reply":"respuesta breve y concreta","fields":null}`;
+  try {
+    const out = await geminiJSON([{ text: prompt }]);
+    const reply = String(out.reply || 'Listo.');
+    const upd = out.fields && typeof out.fields === 'object' ? out.fields : null;
+    const msg = { role: 'ai', text: reply, at: Date.now() };
+    if (upd && Object.keys(upd).length) {
+      for (const [k, v] of Object.entries(upd)) if (k in c.fields || CFIELDS.some(([kk]) => kk === k)) c.fields[k] = String(v);
+      c.versions.push({ n: c.versions.length + 1, at: Date.now(), fields: structuredClone(c.fields), note: text.slice(0, 40) });
+      msg.version = c.versions.length;
+    }
+    c.chat.push(msg);
+  } catch (e) { S.error = e.message; }
+  S.busy = false; await saveConcept(c);
+}
+
+/* ============ Parte 2 · Mapa de campaña ============ */
+function viewMapa() {
+  const camp = campaignById(S.ctx.campaignId);
+  if (!camp) {
+    return topBar('Mapa de campaña') + `<section class="card"><div class="empty">${IC(VIEWS.mapa.icon, 28)}<span>El mapa muestra todo el proceso de una campaña.<br>Elige una campaña en el menú de la izquierda (dentro de un cliente).</span>
+      ${S.clients.length ? '' : '<button class="btn primary" data-new-client>Crear un cliente</button>'}</div></section>`;
+  }
+  const refs = S.refs.filter((r) => r.campaignId === camp.id || (r.clientId === camp.clientId && !r.campaignId));
+  const concepts = S.concepts.filter((c) => c.campaignId === camp.id).sort((a, b) => ({ elegido: 0, explorando: 1, descartado: 2 }[a.status || 'explorando'] - { elegido: 0, explorando: 1, descartado: 2 }[b.status || 'explorando']));
+  const W = 260, GAP = 136, COLS = [24, 24 + W + GAP, 24 + 2 * (W + GAP), 24 + 3 * (W + GAP), 24 + 4 * (W + GAP)];
+  const ROWH = 230, TOP = 80;
+  const n = Math.max(concepts.length, 1);
+  const H = TOP + n * ROWH + 40;
+  const rowY = (i) => TOP + i * ROWH + ROWH / 2 - 10;
+  const lines = [], dots = [], cards = [], pills = [];
+  const LINE = '#C9C9CF';
+  const hl = (x1, x2, y, dash) => lines.push(`<path d="M ${x1} ${y} L ${x2} ${y}" ${dash ? 'stroke-dasharray="5 5"' : ''}/>`);
+  const vl = (x, y1, y2) => lines.push(`<path d="M ${x} ${y1} L ${x} ${y2}"/>`);
+  const dot = (x, y) => dots.push(`<span aria-hidden="true" style="position:absolute;left:${x - 6}px;top:${y - 6}px;width:12px;height:12px;border-radius:99px;background:#fff;border:1.5px solid ${LINE}"></span>`);
+  const pill = (x, y, txt, dark = true) => { const w = Math.round(txt.length * 7.2 + 26); pills.push(`<span style="position:absolute;left:${x - w / 2}px;top:${y - 36}px;width:${w}px;height:26px;border-radius:99px;background:${dark ? '#18181B' : '#fff'};color:${dark ? '#fff' : 'var(--ink3)'};border:${dark ? '0' : '1px solid var(--line2)'};font-size:12px;display:flex;align-items:center;justify-content:center;white-space:nowrap">${esc(txt)}</span>`); };
+  const STG = { research: ['#DCEBE5', '#0B5A40', VIEWS.research.icon], concept: ['#EDE4FE', '#4B2A8A', VIEWS.conceptos.icon], comp: ['#27272A', '#FFFFFF', VIEWS.competidores.icon], create: ['#56C89F', '#0B3B2C', I.biblioteca], result: ['#D8C7FD', '#2E1A5C', I.check] };
+  const chip = (k, s = 24) => `<span aria-hidden="true" style="width:${s}px;height:${s}px;flex:0 0 ${s}px;border-radius:7px;background:${STG[k][0]};color:${STG[k][1]};display:inline-flex;align-items:center;justify-content:center">${IC(STG[k][2], 13)}</span>`;
+  const head = (k, title, meta = '') => `<span style="display:flex;align-items:center;gap:8px">${chip(k)}<span style="font-size:13px;font-weight:600">${title}</span><span style="margin-left:auto;font-size:12px" class="muted">${meta}</span></span>`;
+  const card = (x, cy, h, inner, act, faded, border) => cards.push(`<${act ? `button ${act}` : 'div'} class="mapcard" style="position:absolute;left:${x}px;top:${cy - h / 2}px;width:${W}px;height:${h}px;${faded ? 'opacity:.55;' : ''}${border ? `border-color:${border};` : ''}">${inner}</${act ? 'button' : 'div'}>`);
+  const thumbs = (arr, h = 40) => `<span style="display:flex;gap:6px">${arr.slice(0, 5).map((u) => `<span aria-hidden="true" style="flex:1;height:${h}px;border-radius:6px;background:${u.bg || 'var(--lav-tint)'} ${u.src ? `url('${u.src}') center/cover` : ''}"></span>`).join('')}</span>`;
+
+  // Research
+  const bySrc = {};
+  refs.forEach((r) => { bySrc[r.source] = (bySrc[r.source] || 0) + 1; });
+  const rCY = TOP + (n * ROWH) / 2 - 10;
+  const RH = Math.min(300, n * ROWH - 30);
+  card(COLS[0], rCY, RH, head('research', 'Swipe file', `${refs.length} ${refs.length === 1 ? 'ref' : 'refs'}`) +
+    `<span class="row" style="gap:4px">${Object.entries(bySrc).map(([s, k]) => `<span class="tag">${esc(s.replace(' Creative Center', '').replace(' Ad Library', ''))} · ${k}</span>`).join('') || '<span class="small muted">Sin referencias todavía</span>'}</span>` +
+    (refs.length ? thumbs(refs.filter((r) => r.blob).map((r) => ({ src: refURL(r) })), 54) : '') +
+    `<span class="small" style="line-height:1.45"><span class="muted">Insight clave:</span> ${esc(camp.insight || 'Toca para escribir el insight de la campaña')}</span>`, 'data-act="map-insight"');
+  // Concepts rows
+  const fanX = COLS[0] + W + GAP / 2;
+  if (concepts.length) {
+    hl(COLS[0] + W, fanX, rCY); dot(COLS[0] + W, rCY);
+    vl(fanX, Math.min(rowY(0), rCY), Math.max(rowY(concepts.length - 1), rCY));
+  }
+  concepts.forEach((c, i) => {
+    const y = rowY(i), st = c.status || 'explorando', disc = st === 'descartado';
+    hl(fanX, COLS[1], y, disc); dot(COLS[1], y);
+    card(COLS[1], y, 180, head('concept', 'Concepto', `<b style="font-weight:600;color:${st === 'elegido' ? 'var(--mint-dark)' : 'inherit'}">${CSTATUS[st].label.replace(/s$/, '')}</b>`) +
+      `<b style="font-size:15px;font-weight:600;line-height:1.3" class="clamp">${esc(c.name)}</b>
+      <span class="row" style="gap:4px">${c.fields.angle ? `<span class="tag lav">${esc(c.fields.angle)}</span>` : ''}<span class="tag">v${(c.versions || []).length || 1}</span></span>
+      <span class="small clamp muted">${esc(c.fields.message || c.fields.insight || '')}</span>`, `data-act="concept-open" data-id="${c.id}"`, disc, st === 'elegido' ? 'var(--mint)' : '');
+    if (disc) return;
+    // Competitors with same angle
+    const comp = S.refs.filter((r) => c.fields.angle && refAngles(r).includes(c.fields.angle) && r.brand && (!camp.clientId || !clientById(camp.clientId) || r.brand.toLowerCase() !== clientById(camp.clientId).name.toLowerCase()));
+    const brands = [...new Set(comp.map((r) => r.brand))];
+    const fmts = {}; comp.forEach((r) => { const f = refFormat(r); if (f) fmts[f] = (fmts[f] || 0) + 1; });
+    const topFmt = Object.entries(fmts).sort((a, b) => b[1] - a[1])[0];
+    hl(COLS[1] + W, COLS[2], y); dot(COLS[1] + W, y); dot(COLS[2], y); pill((COLS[1] + W + COLS[2]) / 2, y, 'por ángulo');
+    card(COLS[2], y, 180, head('comp', 'Ángulo: ' + esc(c.fields.angle || 'sin definir'), `${comp.length} ${comp.length === 1 ? 'ad' : 'ads'}`) +
+      `<b style="font-size:14px;font-weight:600" class="clamp">${esc(brands.slice(0, 3).join(' · ') || 'Sin referencias con este ángulo')}</b>
+      <span class="row" style="gap:4px">${topFmt ? `<span class="tag">Más ${esc(topFmt[0])}</span>` : ''}</span>
+      <span class="small clamp" style="line-height:1.45">${c.compNote ? `<b style="font-weight:600;color:var(--mint-dark)">Oportunidad:</b> ${esc(c.compNote)}` : comp.length ? '<span style="color:var(--purple);font-weight:600">Toca para generar la lectura de oportunidad</span>' : '<span class="muted">Guarda ads con este ángulo en Research</span>'}</span>`,
+      comp.length ? `data-act="map-comp" data-id="${c.id}"` : '');
+    // Creation
+    const imgs = conceptImages(c.id);
+    const byModel = {}; imgs.forEach((im) => { byModel[im.model] = (byModel[im.model] || 0) + 1; });
+    hl(COLS[2] + W, COLS[3], y); dot(COLS[2] + W, y); dot(COLS[3], y); pill((COLS[2] + W + COLS[3]) / 2, y, 'a imágenes');
+    card(COLS[3], y, 190, head('create', 'Creación', `${imgs.length} ${imgs.length === 1 ? 'imagen' : 'imágenes'}`) +
+      (imgs.length ? thumbs(imgs.map((im) => ({ src: imgURL(im) })), 46) + `<span class="row" style="gap:4px">${Object.entries(byModel).map(([m, k]) => `<span class="tag" style="display:inline-flex;align-items:center;gap:4px">${logoMark(m, 11)}${esc(m)} ${k}</span>`).join('')}</span>`
+        : '<span class="small muted">Aún no hay imágenes de este concepto.</span><span class="small" style="color:var(--purple);font-weight:600">Toca para bajarlo a imágenes</span>'),
+      imgs.length ? `data-act="cimgs-lib"` : `data-act="map-down" data-id="${c.id}"`);
+    // Result
+    const finals = imgs.filter((im) => im.mark === 'ok');
+    hl(COLS[3] + W, COLS[4], y); dot(COLS[3] + W, y); dot(COLS[4], y); pill((COLS[3] + W + COLS[4]) / 2, y, finals.length ? `✓ ${finals.length} ${finals.length === 1 ? 'elegida' : 'elegidas'}` : 'en curso', !!finals.length);
+    card(COLS[4], y, 180, head('result', 'Resultado', finals.length ? '<b style="font-weight:600;color:var(--mint-dark)">Listo</b>' : 'Pendiente') +
+      (finals.length ? `<b style="font-size:14px;font-weight:600">${finals.length} ${finals.length === 1 ? 'final elegida' : 'finales elegidas'}</b>` + thumbs(finals.map((im) => ({ src: imgURL(im) })), 36) : '<b style="font-size:14px;font-weight:600">Aún no hay finales</b><span class="small muted">Marca imágenes con ✓ en Generar y comparar.</span>') +
+      `<span class="small clamp">${c.metrics ? `<span class="muted">Métricas:</span> ${esc(c.metrics)}` : '<span style="color:var(--purple);font-weight:600">+ Anotar métricas</span>'}</span>`, `data-act="concept-open" data-id="${c.id}"`);
+  });
+  if (!concepts.length) {
+    card(COLS[1], rowY(0), 180, head('concept', 'Conceptos') + '<span class="small muted">Esta campaña aún no tiene conceptos.</span><span class="small" style="color:var(--purple);font-weight:600">Toca para crear el primero</span>', 'data-act="concept-new"');
+    hl(COLS[0] + W, COLS[1], rCY); dot(COLS[0] + W, rCY); dot(COLS[1], rCY);
+  }
+  const heads = ['1 · Research', '2 · Conceptos', '3 · Competidores', '4 · Creación', '5 · Resultado'].map((t, i) => `<span style="position:absolute;left:${COLS[i]}px;top:20px;display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--ink3)">${chip(['research', 'concept', 'comp', 'create', 'result'][i], 22)}${t}</span>`).join('');
+  const WIDTH = COLS[4] + W + 24;
+  S.mapW = WIDTH; S.mapH = H;
+  return topBar('Mapa de campaña', `<button class="btn sm" data-act="map-fit">${S.mapFit ? 'Ver a 100%' : 'Ajustar a la pantalla'}</button><div class="tabs" role="tablist" aria-label="Vista"><button role="tab" aria-selected="true">Mapa</button><button role="tab" aria-selected="false" data-go="conceptos">Tablero</button></div>`) +
+    (S.error ? `<div class="alert err" role="alert">${esc(S.error)}</div>` : '') +
+    `<section id="mapsec" aria-label="Diagrama del proceso de la campaña ${esc(camp.name)}" style="border-radius:18px;border:1px solid var(--line);background-color:#FAFAFA;background-image:radial-gradient(#D9D9DE 1px,transparent 1px);background-size:18px 18px;overflow:auto;padding:8px">
+      <div id="mapfit" style="position:relative;width:${WIDTH}px;height:${H}px"><div id="mapinner" style="position:absolute;left:0;top:0;width:${WIDTH}px;height:${H}px;transform-origin:0 0">
+        <svg aria-hidden="true" width="${WIDTH}" height="${H}" style="position:absolute;inset:0;fill:none;stroke:${LINE};stroke-width:1.5;stroke-linecap:round">${lines.join('')}</svg>
+        ${dots.join('')}${cards.join('')}${pills.join('')}${heads}
+      </div></div></section>
+    <p class="small muted" style="margin:0">Toca cualquier tarjeta para abrir su pantalla. Desliza hacia el lado para ver todo el proceso. ${S.busy === 'comp' ? '<span class="spin"></span> Generando lectura de competidores…' : ''}</p>`;
+}
+ACTIONS['map-insight'] = () => {
+  const camp = campaignById(S.ctx.campaignId);
+  modal({ title: 'Insight clave de la campaña', okLabel: 'Guardar',
+    body: `<label class="field"><span>¿Qué descubriste en el research?</span><textarea class="input" name="v" rows="3">${esc(camp.insight || '')}</textarea></label>`,
+    onOk: async (f) => { camp.insight = f.v.trim(); await DB.put('campaigns', camp); await reloadData(); render(); } });
+};
+ACTIONS['map-down'] = (t) => { S.conceptId = t.dataset.id; ACTIONS['concept-down'](); };
+ACTIONS['map-comp'] = async (t) => {
+  const c = conceptById(t.dataset.id);
+  if (c.compNote) { S.brandName = null; go('competidores'); return; }
+  if (!S.settings.apiKey) { toast('Conecta Gemini en Ajustes'); return; }
+  const comp = S.refs.filter((r) => refAngles(r).includes(c.fields.angle) && r.analysis);
+  S.busy = 'comp'; render();
+  try {
+    const out = await geminiJSON([{ text: `Eres estratega de paid ads. Estos son ads de competidores que usan el ángulo «${c.fields.angle}»:\n${comp.map((r) => `- ${r.brand}: hook ${r.analysis.Hook}; composición ${r.analysis['Composición']}; formato ${r.analysis.Formato}`).join('\n')}\nEl concepto de mi campaña es «${c.name}»: ${c.fields.message || c.fields.insight}.\nEn UNA frase corta en español, ¿qué oportunidad dejan los competidores que mi concepto puede aprovechar? Responde solo JSON: {"note":"..."}` }]);
+    c.compNote = String(out.note || '').slice(0, 220); await DB.put('concepts', c);
+  } catch (e) { S.error = e.message; }
+  S.busy = false; await reloadData(); render();
+};
+
+AFTER.mapa = () => {
+  const sec = $('#mapsec'), fit = $('#mapfit'), inner = $('#mapinner');
+  if (!sec || !fit) return;
+  const k = S.mapFit ? Math.min(1, (sec.clientWidth - 18) / S.mapW) : 1;
+  inner.style.transform = `scale(${k})`;
+  fit.style.width = Math.ceil(S.mapW * k) + 'px'; fit.style.height = Math.ceil(S.mapH * k) + 'px';
+};
+window.addEventListener('resize', () => { if (S.view === 'mapa' && AFTER.mapa) AFTER.mapa(); });
+ACTIONS['map-fit'] = () => { S.mapFit = !S.mapFit; render(); };
+
+/* ============ Parte 3 · Aprender ============ */
+const FW_TYPES = { hook: 'Hooks', estructura: 'Estructuras de ads', angulo: 'Ángulos de venta', fav: 'Mis favoritos' };
+const FW_SEED = [
+  ['hook', 'POV', 'Pone a quien mira dentro de una situación que reconoce al instante.', 'POV: [situación cotidiana del público] + [problema o deseo]', '«POV: tu piel después de 3 días de playa»', ['POV']],
+  ['hook', 'Pregunta directa', 'Una pregunta que la persona se responde mentalmente con un sí.', '¿[Problema concreto] + [contexto]?', '«¿Tu piel se siente tirante después del sol?»', ['Pregunta', 'Pregunta directa']],
+  ['hook', 'Patrón interrumpido', 'Algo inesperado en el primer segundo que corta el scroll.', '[Imagen o acción fuera de lugar] + giro hacia el producto', 'Un sérum flotando sobre una ola congelada', ['Patrón interrumpido', 'Sorpresa']],
+  ['hook', 'Número + beneficio', 'Promete un resultado concreto y fácil de medir.', '[Número] [pasos/días/razones] para [beneficio]', '«3 pasos para un glow que dura todo el verano»', ['Número', 'Lista']],
+  ['hook', 'Prueba social primero', 'Abre con lo que dice otra persona antes de hablar de la marca.', '«[Cita corta de reseña]» + nombre o estrellas', '«Lo uso en cada viaje» ★★★★★', ['Review card', 'Reseña', 'Testimonio']],
+  ['hook', 'Contador / urgencia', 'Activa el miedo a perderse la oferta con un límite claro.', '[Últimos días / horas] + [oferta concreta]', '«Últimos 2 días: 20% en tu rutina de verano»', ['Contador', 'Urgencia']],
+  ['estructura', 'Problema–solución', 'Muestra el dolor, luego el producto como la salida más simple.', 'Problema visible → producto en acción → resultado → CTA', 'Piel tirante tras la playa → aplicación del sérum → piel luminosa', ['Problema–solución']],
+  ['estructura', 'Antes / después', 'El contraste vende solo; el producto es el puente entre ambos estados.', 'Antes (dolor) | Después (resultado) + producto al centro', 'Split: piel opaca vs. piel con glow', ['Antes / después']],
+  ['estructura', 'Demostración', 'El producto funcionando en primer plano, sin rodeos.', 'Close-up del uso → textura/acción → resultado inmediato', 'Gota del sérum absorbiéndose en macro', ['Demostración', 'Macro textura']],
+  ['estructura', 'UGC / testimonio', 'Una persona real cuenta su experiencia en primera persona.', 'Hook personal → experiencia → resultado → recomendación', 'Video selfie: «llevo 2 semanas usándolo y…»', ['UGC', 'Testimonio']],
+  ['estructura', 'Lista de beneficios', 'Varios beneficios rápidos que se leen de un vistazo.', 'Producto + 3 beneficios con íconos o checks + CTA', 'Hidrata ✓ Protege ✓ Ilumina ✓', ['Lista', 'Beneficios']],
+  ['angulo', 'Beneficio', 'Lidera con el resultado que la persona obtiene.', '[Resultado deseado] gracias a [producto]', '«Tu glow, todo el verano»', ['Beneficio']],
+  ['angulo', 'Urgencia', 'Da una razón para actuar ahora.', '[Límite de tiempo o stock] + [oferta]', '«Solo hasta el domingo»', ['Urgencia']],
+  ['angulo', 'Social proof', 'Muestra que otras personas ya lo eligieron.', '[Número de clientes / reseñas] + [resultado]', '«+10.000 pieles hidratadas»', ['Social proof']],
+  ['angulo', 'Autoridad', 'Respaldo experto, científico o de prensa.', '[Experto / estudio / medio] + [afirmación]', '«Recomendado por dermatólogas»', ['Autoridad']],
+  ['angulo', 'Oferta', 'El precio o el regalo es el protagonista.', '[Descuento / regalo] + [producto] + [condición]', '«2x1 en tu rutina de verano»', ['Oferta']],
+  ['angulo', 'Estilo de vida', 'Vende el momento y la identidad, no la fórmula.', '[Escena aspiracional] + producto integrado', 'Atardecer en la playa con el sérum en la toalla', ['Estilo de vida', 'Lifestyle']],
+];
+S.fwTab = 'hook'; S.fwQ = '';
+async function seedFrameworks() {
+  if (S.frameworks.length) return;
+  for (const [type, name, desc, formula, example, match] of FW_SEED) await DB.put('frameworks', { id: uid(), type, name, desc, formula, example, match, fav: false, seed: true, created: Date.now() });
+  await reloadData();
+}
+function fwExamples(fw) {
+  const m = (fw.match || [fw.name]).map((x) => x.toLowerCase());
+  return S.refs.filter((r) => (r.tags || []).some((t) => m.includes(t.l.toLowerCase())));
+}
+function viewFrameworks() {
+  if (!S.frameworks.length) { seedFrameworks().then(render); return topBar('Biblioteca de frameworks') + '<div class="empty"><span class="spin"></span></div>'; }
+  let list = S.fwTab === 'fav' ? S.frameworks.filter((f) => f.fav) : S.frameworks.filter((f) => f.type === S.fwTab);
+  if (S.fwQ) { const q = S.fwQ.toLowerCase(); list = S.frameworks.filter((f) => (f.name + f.desc + f.formula + f.example).toLowerCase().includes(q)); }
+  return topBar('Biblioteca de frameworks', `<button class="btn sm primary" data-act="fw-add">${IC(I.plus, 14)}Agregar framework</button>`) +
+    `<div class="row" style="justify-content:space-between"><div class="tabs" role="tablist" aria-label="Tipo de framework">${Object.entries(FW_TYPES).map(([k, l]) => `<button role="tab" aria-selected="${S.fwTab === k && !S.fwQ}" data-act="fw-tab" data-v="${k}">${l}</button>`).join('')}</div>
+      <label class="row" style="flex-wrap:nowrap;gap:8px;height:40px;padding:0 12px;border-radius:999px;background:#fff;border:1px solid var(--line2);min-width:240px">${IC('<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/>', 14)}<span class="sr">Buscar frameworks</span><input id="fwq" value="${esc(S.fwQ)}" placeholder="Buscar frameworks" style="border:0;outline:0;background:transparent;flex:1;font-size:13px"></label></div>
+    ${list.length ? `<div class="grid3">${list.map((f) => {
+      const ex = fwExamples(f);
+      return `<article class="card tight">
+        <div class="row" style="justify-content:space-between"><span class="tag mint">${esc(FW_TYPES[f.type] || '').replace(/s de .*|s$/, '')}</span>
+          <button class="iconbtn" style="border:0;width:36px;height:36px;color:${f.fav ? 'var(--purple)' : '#A1A1AA'}" aria-pressed="${f.fav}" aria-label="Favorito" data-act="fw-fav" data-id="${f.id}">${IC('<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/>', 16).replace('fill="none"', `fill="${f.fav ? '#D8C7FD' : 'none'}"`)}</button></div>
+        <h2 style="font-size:16px">${esc(f.name)}</h2><p style="margin:0;font-size:13px;color:var(--ink3)">${esc(f.desc)}</p>
+        <div style="padding:10px 12px;border-radius:10px;background:var(--bg2);border:1px solid var(--bg)"><div class="small muted" style="font-weight:600;text-transform:uppercase;letter-spacing:.04em">Fórmula</div><div style="font-size:13px">${esc(f.formula)}</div></div>
+        ${f.example ? `<p style="margin:0;font-size:13px"><span class="muted">Ejemplo:</span> ${esc(f.example)}</p>` : ''}
+        <div class="row" style="justify-content:space-between;border-top:1px solid var(--bg);padding-top:10px">
+          <button class="btn sm ghost" style="color:var(--mint-dark)" data-act="fw-examples" data-id="${f.id}" ${ex.length ? '' : 'disabled'}>${ex.length} ${ex.length === 1 ? 'ejemplo' : 'ejemplos'} en tu swipe file</button>
+          <div class="row">${f.seed ? '' : `<button class="btn sm ghost" style="color:var(--red)" data-act="fw-del" data-id="${f.id}" aria-label="Eliminar">${IC(I.trash, 14)}</button>`}<button class="btn sm" style="border-color:var(--lav);color:var(--purple);font-weight:600" data-act="fw-use" data-id="${f.id}">Usar en un concepto</button></div></div>
+      </article>`;
+    }).join('')}</div>` : `<section class="card"><div class="empty"><span>${S.fwTab === 'fav' ? 'Marca frameworks con la estrella para tenerlos aquí.' : 'No hay frameworks que coincidan.'}</span></div></section>`}`;
+}
+AFTER.frameworks = () => { const q = $('#fwq'); if (q) q.addEventListener('change', () => { S.fwQ = q.value.trim(); render(); }); };
+ACTIONS['fw-tab'] = (t) => { S.fwTab = t.dataset.v; S.fwQ = ''; render(); };
+ACTIONS['fw-fav'] = async (t) => { const f = S.frameworks.find((x) => x.id === t.dataset.id); f.fav = !f.fav; await DB.put('frameworks', f); await reloadData(); render(); };
+ACTIONS['fw-del'] = async (t) => { await DB.del('frameworks', t.dataset.id); await reloadData(); render(); toast('Framework eliminado'); };
+ACTIONS['fw-examples'] = (t) => {
+  const f = S.frameworks.find((x) => x.id === t.dataset.id), ex = fwExamples(f);
+  modal({ title: `Ejemplos de «${esc(f.name)}»`, okLabel: 'Cerrar',
+    body: `<div class="grid3" style="gap:10px">${ex.map((r) => `<button data-act="ref-open" data-id="${r.id}" data-close style="border:0;padding:0;background:transparent;text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:4px;font-size:12px"><span style="display:block;aspect-ratio:3/4;border-radius:8px;overflow:hidden;background:var(--lav-tint)">${r.blob ? `<img src="${refURL(r)}" alt="" style="width:100%;height:100%;object-fit:cover">` : ''}</span>${esc(r.brand || r.source)}</button>`).join('')}</div>`,
+    onOk: () => true });
+};
+function fwForm(f = {}) {
+  return `<label class="field"><span>Tipo</span><select class="input" name="type">${Object.entries(FW_TYPES).filter(([k]) => k !== 'fav').map(([k, l]) => `<option value="${k}" ${f.type === k ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
+    <label class="field"><span>Nombre</span><input class="input" name="name" value="${esc(f.name || '')}"></label>
+    <label class="field"><span>Qué es</span><textarea class="input" name="desc" rows="2">${esc(f.desc || '')}</textarea></label>
+    <label class="field"><span>Fórmula</span><input class="input" name="formula" value="${esc(f.formula || '')}"></label>
+    <label class="field"><span>Ejemplo</span><input class="input" name="example" value="${esc(f.example || '')}"></label>`;
+}
+ACTIONS['fw-add'] = (t, e, pre) => modal({ title: 'Agregar framework', okLabel: 'Guardar', body: fwForm(pre || { type: S.fwTab === 'fav' ? 'hook' : S.fwTab }),
+  onOk: async (f) => {
+    if (!f.name.trim()) { toast('Ponle un nombre'); return false; }
+    await DB.put('frameworks', { id: uid(), type: f.type, name: f.name.trim(), desc: f.desc, formula: f.formula, example: f.example, match: [f.name.trim()], fav: true, seed: false, created: Date.now() });
+    await reloadData(); S.fwTab = f.type; go('frameworks'); toast('Framework guardado');
+  } });
+ACTIONS['fw-use'] = (t) => {
+  const f = S.frameworks.find((x) => x.id === t.dataset.id);
+  const cs = S.concepts.filter((c) => c.status !== 'descartado');
+  if (!cs.length) { toast('Primero crea un concepto en Conceptos'); return; }
+  modal({ title: `Usar «${esc(f.name)}»`, okLabel: 'Aplicar',
+    body: `<label class="field"><span>Concepto</span><select class="input" name="c">${cs.map((c) => `<option value="${c.id}" ${c.campaignId === S.ctx.campaignId ? 'selected' : ''}>${esc(c.name)} · ${esc((campaignById(c.campaignId) || {}).name || 'General')}</option>`).join('')}</select></label>
+      ${f.type === 'angulo' ? `<p class="small muted" style="margin:0">También se usará «${esc(f.name)}» como ángulo del concepto.</p>` : ''}`,
+    onOk: async (v) => {
+      const c = conceptById(v.c); c.frameworkId = f.id;
+      if (f.type === 'angulo') c.fields.angle = f.name;
+      await DB.put('concepts', c); await reloadData(); S.conceptId = c.id; go('concepto'); toast('Framework aplicado. Pídele al chat que lo use.');
+    } });
+};
+
+/* ---- Competidores ---- */
+function allBrands() {
+  const names = new Map();
+  for (const b of S.brands) names.set(b.name.toLowerCase(), { name: b.name, followed: b.followed, rec: b });
+  for (const r of S.refs) if (r.brand && !names.has(r.brand.toLowerCase())) names.set(r.brand.toLowerCase(), { name: r.brand, followed: false, rec: null });
+  return [...names.values()].map((b) => ({ ...b, refs: S.refs.filter((r) => r.brand && r.brand.toLowerCase() === b.name.toLowerCase()) }));
+}
+function viewCompetidores() {
+  const brands = allBrands().sort((a, b) => (b.followed - a.followed) || (b.refs.length - a.refs.length));
+  if (!brands.length) return topBar('Seguimiento de competidores') + `<section class="card"><div class="empty">${IC(VIEWS.competidores.icon, 28)}<span>Todavía no hay marcas.<br>Guarda ads en Research con su marca y síguelas desde el análisis de la referencia.</span><button class="btn primary" data-go="research">Ir a Research</button></div></section>`;
+  if (!S.brandName || !brands.some((b) => b.name === S.brandName)) S.brandName = brands[0].name;
+  const b = brands.find((x) => x.name === S.brandName);
+  const months = {};
+  b.refs.slice().sort((x, y) => x.created - y.created).forEach((r) => { const k = new Date(r.created).toLocaleDateString('es-CL', { month: 'long', year: 'numeric' }); (months[k] = months[k] || []).push(r); });
+  const sum = b.rec && b.rec.summary;
+  const item = (x) => `<button class="navitem ${x.name === b.name ? 'active' : ''}" style="justify-content:space-between;border-radius:10px;min-height:46px" data-act="brand-sel" data-name="${esc(x.name)}"><span>${x.followed ? '★ ' : ''}${esc(x.name)}</span><span class="small muted">${x.refs.length} ${x.refs.length === 1 ? 'ad' : 'ads'}</span></button>`;
+  return topBar('Seguimiento de competidores', `<button class="btn sm ${b.followed ? '' : 'primary'}" data-act="brand-follow" data-name="${esc(b.name)}">${b.followed ? '★ Siguiendo' : 'Seguir marca'}</button>`) +
+    (S.error ? `<div class="alert err" role="alert">${esc(S.error)}</div>` : '') +
+    `<div style="display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start">
+      <nav class="card tight" style="flex:1 1 240px;max-width:280px;gap:2px" aria-label="Marcas">
+        <span class="navlabel" style="padding:6px 10px">Siguiendo</span>${brands.filter((x) => x.followed).map(item).join('') || '<span class="small muted" style="padding:0 10px 6px">Ninguna todavía</span>'}
+        <span class="navlabel" style="padding:12px 10px 6px">En tu swipe file</span>${brands.filter((x) => !x.followed).map(item).join('') || '<span class="small muted" style="padding:0 10px">—</span>'}
+      </nav>
+      <div style="flex:999 1 560px;min-width:0;display:flex;flex-direction:column;gap:16px">
+        <section class="card" aria-labelledby="h-chg">
+          <div class="row" style="justify-content:space-between"><div class="row">${aiChip('Gemini', 12)}<h2 id="h-chg" style="font-size:15px">Qué cambió en ${esc(b.name)}</h2></div>
+            <button class="btn sm" data-act="brand-sum" data-name="${esc(b.name)}" ${b.refs.filter((r) => r.analysis).length < 2 || S.busy ? 'disabled' : ''}>${S.busy === 'brand' ? '<span class="spin"></span> Analizando…' : sum ? 'Actualizar' : 'Analizar cambios'}</button></div>
+          ${sum ? `<div class="grid3" style="gap:12px">${[['Mensaje', 'mensaje', '#FAF7FD', '#EDE4FE', 'var(--purple)'], ['Ofertas', 'ofertas', '#F3F9F6', '#DCEBE5', 'var(--mint-dark)'], ['Formatos', 'formatos', 'var(--bg2)', 'var(--line)', 'var(--ink3)']].map(([l, k, bg, bd, fg]) => `<div style="padding:12px 14px;border-radius:12px;background:${bg};border:1px solid ${bd};display:flex;flex-direction:column;gap:4px"><span class="small" style="font-weight:600;color:${fg}">${l}</span><span style="font-size:13px">${esc(sum[k] || '—')}</span></div>`).join('')}</div>
+            <span class="small muted">Según los ${b.refs.length} ads que guardaste · ${new Date(sum.at).toLocaleDateString('es-CL', { dateStyle: 'medium' })}</span>`
+            : `<span class="small muted">${b.refs.filter((r) => r.analysis).length < 2 ? 'Guarda al menos 2 ads analizados de esta marca para comparar cómo cambia.' : 'Toca «Analizar cambios» para que Gemini compare sus ads en el tiempo.'}</span>`}
+        </section>
+        <section class="card" aria-labelledby="h-tl"><h2 id="h-tl" style="font-size:15px">Línea de tiempo</h2>
+          <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px">${Object.entries(months).slice(-4).map(([m, rs], i, arr) => `<div style="display:flex;flex-direction:column;gap:10px"><div class="row" style="padding-bottom:8px;border-bottom:2px solid ${i === arr.length - 1 ? 'var(--mint)' : 'var(--line2)'}"><b style="font-weight:600;font-size:13px;text-transform:capitalize">${esc(m)}</b><span class="small muted">${rs.length} ${rs.length === 1 ? 'ad' : 'ads'}</span></div>
+            ${rs.map((r) => `<button data-act="ref-open" data-id="${r.id}" style="border:0;padding:0;background:transparent;text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:6px"><span style="display:block;border-radius:10px;overflow:hidden;background:var(--lav-tint);max-height:200px">${r.blob ? `<img src="${refURL(r)}" alt="Ad de ${esc(r.brand)}" style="width:100%;display:block;max-height:200px;object-fit:cover">` : '<span style="display:block;height:80px"></span>'}</span><span class="row" style="gap:4px">${(r.tags || []).filter((t) => t.t === 'angle' || t.t === 'format').map((t) => tagChip(t)).join('')}</span></button>`).join('')}</div>`).join('')}</div>
+          ${Object.keys(months).length > 4 ? '<span class="small muted">Mostrando los últimos 4 meses.</span>' : ''}
+        </section>
+      </div></div>`;
+}
+ACTIONS['brand-sel'] = (t) => { S.brandName = t.dataset.name; render(); };
+ACTIONS['brand-sum'] = async (t) => {
+  const name = t.dataset.name;
+  const refs = S.refs.filter((r) => r.brand && r.brand.toLowerCase() === name.toLowerCase() && r.analysis).sort((a, b) => a.created - b.created);
+  S.busy = 'brand'; S.error = null; render();
+  try {
+    const out = await geminiJSON([{ text: `Eres estratega de paid ads. Estos son ads de la marca ${name}, en orden de fecha:\n${refs.map((r) => `- ${new Date(r.created).toISOString().slice(0, 10)} (${r.source}): hook ${r.analysis.Hook}; ángulo ${r.analysis['Ángulo de venta']}; copy ${r.analysis.Copy}; CTA ${r.analysis.CTA}; formato ${r.analysis.Formato}`).join('\n')}\nResume en español, una frase corta por campo, cómo cambiaron en el tiempo su mensaje, sus ofertas y sus formatos. Si no hay cambio claro, dilo. Responde solo JSON: {"mensaje":"...","ofertas":"...","formatos":"..."}` }]);
+    let b = S.brands.find((x) => x.name.toLowerCase() === name.toLowerCase());
+    if (!b) b = { id: uid(), name, followed: false, created: Date.now() };
+    b.summary = { mensaje: String(out.mensaje || ''), ofertas: String(out.ofertas || ''), formatos: String(out.formatos || ''), at: Date.now() };
+    await DB.put('brands', b);
+  } catch (e) { S.error = e.message; }
+  S.busy = false; await reloadData(); render();
+};
+
+/* ---- Pregúntale a la IA ---- */
+const QA_SUGGEST = ['¿Qué es el CTR y qué es un buen número?', 'Diferencia entre campañas de awareness y de conversión', '¿Por qué el UGC funciona en TikTok?', '¿Qué es un hook de patrón interrumpido y cuándo usarlo?'];
+function viewPregunta() {
+  const msgs = S.qa.map((m) => {
+    if (m.role === 'user') return `<div class="msg u" style="max-width:70%">${esc(m.text)}</div>`;
+    const ex = S.refs.filter((r) => (m.refIds || []).includes(r.id));
+    return `<div style="align-self:flex-start;max-width:88%;display:flex;flex-direction:column;gap:10px">
+      <div class="row">${aiChip('Gemini', 12)}</div>
+      <div style="white-space:pre-wrap;font-size:14px;line-height:1.6">${esc(m.text)}</div>
+      ${ex.length ? `<div style="padding:12px;border-radius:12px;background:var(--bg2);border:1px solid var(--bg);display:flex;flex-direction:column;gap:8px"><span class="small muted" style="font-weight:600;text-transform:uppercase;letter-spacing:.04em">Ejemplos de tu swipe file</span>
+        <div class="grid3" style="gap:10px">${ex.map((r) => `<button data-act="ref-open" data-id="${r.id}" style="border:0;padding:0;background:transparent;text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600"><span style="display:block;aspect-ratio:4/3;border-radius:8px;overflow:hidden;background:var(--lav-tint)">${r.blob ? `<img src="${refURL(r)}" alt="" style="width:100%;height:100%;object-fit:cover">` : ''}</span>${esc(r.brand || '')} · ${esc(r.source)}</button>`).join('')}</div></div>` : ''}
+      ${m.saved ? '<span class="status ok" style="align-self:flex-start">✓ Guardado en lo aprendido</span>' : `<div class="row"><button class="btn sm" style="border-color:var(--lav);color:var(--purple);font-weight:600" data-act="qa-save" data-i="${S.qa.indexOf(m)}">Guardar en lo aprendido</button>
+        <button class="btn sm" data-act="qa-fw" data-i="${S.qa.indexOf(m)}">Guardar como framework</button><button class="btn sm" data-act="qa-apply" data-i="${S.qa.indexOf(m)}">Aplicar a un concepto</button></div>`}
+    </div>`;
+  }).join('');
+  return topBar('Pregúntale a la IA', `<button class="btn sm" data-act="qa-new">Nueva conversación</button>`) +
+    (S.error ? `<div class="alert err" role="alert">${esc(S.error)}</div>` : '') +
+    `<div style="display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start">
+      <section class="card" style="flex:999 1 560px;min-width:0;min-height:600px;padding:0;gap:0" aria-label="Conversación">
+        <div class="chat" id="qachat" style="flex:1;padding:24px 28px;max-height:640px">${msgs || `<div class="empty"><span>Pregunta sobre marketing, performance o creatividad.<br>La IA responde usando ejemplos de tu propio swipe file.</span></div>`}${S.busy === 'qa' ? '<div class="msg a"><span class="spin"></span></div>' : ''}</div>
+        <div class="row" style="gap:6px;padding:0 24px 12px">${QA_SUGGEST.map((q) => `<button class="btn sm" data-act="qa-ask" data-v="${esc(q)}">${esc(q)}</button>`).join('')}</div>
+        <form class="row" style="flex-wrap:nowrap;padding:14px 18px;border-top:1px solid var(--line)" data-qa>
+          <label style="flex:1;display:flex"><span class="sr">Pregunta</span><input class="input" id="qain" style="border-radius:999px" placeholder="Pregunta sobre marketing, performance o creatividad…" autocomplete="off"></label>
+          <button class="iconbtn" style="background:var(--lav);border-color:var(--lav);color:var(--lav-ink);width:46px;height:46px" aria-label="Enviar" ${S.busy === 'qa' ? 'disabled' : ''}>${IC(I.right, 16)}</button></form>
+      </section>
+      <aside class="card" style="flex:1 1 280px;max-width:340px" aria-labelledby="h-learn"><h2 id="h-learn" style="font-size:15px">Lo que has aprendido</h2>
+        ${S.notes.length ? S.notes.map((n) => `<div style="display:flex;gap:6px;align-items:flex-start"><button data-act="qa-note" data-id="${n.id}" style="flex:1;text-align:left;border:1px solid var(--line);border-radius:10px;background:#fff;padding:12px;cursor:pointer;display:flex;flex-direction:column;gap:4px"><b style="font-weight:600;font-size:13px">${esc(n.topic || n.q)}</b><span class="small muted">${new Date(n.created).toLocaleDateString('es-CL', { dateStyle: 'medium' })}</span></button><button class="iconbtn" style="border:0;width:32px;height:32px;color:var(--muted)" aria-label="Eliminar" data-act="qa-note-del" data-id="${n.id}">${IC(I.x, 13)}</button></div>`).join('') : '<span class="small muted">Las respuestas que guardes quedan aquí para volver a leerlas.</span>'}
+      </aside></div>`;
+}
+AFTER.pregunta = () => {
+  const box = $('#qachat'); if (box) box.scrollTop = box.scrollHeight;
+  const form = document.querySelector('[data-qa]');
+  if (form) form.addEventListener('submit', (e) => { e.preventDefault(); const v = $('#qain').value.trim(); if (v) askAI(v); });
+};
+async function askAI(q) {
+  if (!S.settings.apiKey) { toast('Conecta Gemini en Ajustes'); return; }
+  S.qa.push({ role: 'user', text: q }); S.busy = 'qa'; S.error = null; render();
+  const sw = S.refs.filter((r) => r.analysis).slice(0, 60).map((r) => `[${r.id}] ${r.brand || 'sin marca'} (${r.source}) · hook: ${r.analysis.Hook} · ángulo: ${r.analysis['Ángulo de venta']}`).join('\n');
+  const hist = S.qa.slice(-8).map((m) => `${m.role === 'user' ? 'Diseñadora' : 'IA'}: ${m.text}`).join('\n');
+  try {
+    const out = await geminiJSON([{ text: `Eres mentor de una diseñadora gráfica especializada en paid ads, social media y performance. Explica de forma clara, práctica y con ejemplos, en español (ella escribe en español o spanglish). Máximo 180 palabras.
+Su swipe file (usa sus ids para citar ejemplos relevantes, máximo 3; si ninguno aplica, deja la lista vacía):
+${sw || '(vacío)'}
+Conversación:
+${hist}
+Responde solo JSON: {"answer":"...","topic":"título corto del tema","refIds":["id"]}` }]);
+    S.qa.push({ role: 'ai', text: String(out.answer || ''), topic: String(out.topic || q).slice(0, 60), refIds: Array.isArray(out.refIds) ? out.refIds : [], q });
+  } catch (e) { S.error = e.message; }
+  S.busy = false; render();
+}
+ACTIONS['qa-ask'] = (t) => askAI(t.dataset.v);
+ACTIONS['qa-new'] = () => { S.qa = []; S.error = null; render(); };
+ACTIONS['qa-save'] = async (t) => { const m = S.qa[+t.dataset.i]; await DB.put('notes', { id: uid(), q: m.q, a: m.text, topic: m.topic, refIds: m.refIds, created: Date.now() }); m.saved = true; await reloadData(); render(); toast('Guardado en lo aprendido'); };
+ACTIONS['qa-note'] = (t) => { const n = S.notes.find((x) => x.id === t.dataset.id); S.qa = [{ role: 'user', text: n.q }, { role: 'ai', text: n.a, topic: n.topic, refIds: n.refIds || [], q: n.q, saved: true }]; render(); };
+ACTIONS['qa-note-del'] = async (t) => { await DB.del('notes', t.dataset.id); await reloadData(); render(); };
+ACTIONS['qa-fw'] = (t) => { const m = S.qa[+t.dataset.i]; ACTIONS['fw-add'](t, null, { type: 'hook', name: m.topic, desc: m.text.split(/(?<=\.)\s/)[0] }); };
+ACTIONS['qa-apply'] = (t) => {
+  const m = S.qa[+t.dataset.i];
+  const cs = S.concepts.filter((c) => c.status !== 'descartado');
+  if (!cs.length) { toast('Primero crea un concepto en Conceptos'); return; }
+  modal({ title: 'Aplicar a un concepto', okLabel: 'Aplicar',
+    body: `<label class="field"><span>Concepto</span><select class="input" name="c">${cs.map((c) => `<option value="${c.id}">${esc(c.name)}</option>`).join('')}</select></label><p class="small muted" style="margin:0">Se le pedirá al chat del concepto que aplique este aprendizaje.</p>`,
+    onOk: async (f) => { S.conceptId = f.c; go('concepto'); conceptChat(`Aplica este aprendizaje al concepto: ${m.text}`); } });
+};
 
 </script>
 </body>
